@@ -14,8 +14,11 @@ app.get('/', function (req, res) {
 
 io.sockets.on('connection', function (socket) {
   
-  socket.on('stream', function(data) {
+  socket.on('startStream', function(data) {
   	// check quality in parameter
+  	if(data.quality > 0) {
+  		socket.emit('frame', {frame: 'Mad data'});
+  	}
 
   });
  

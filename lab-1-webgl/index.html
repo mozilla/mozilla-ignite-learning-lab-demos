@@ -2,15 +2,36 @@
 	<head>
 		<title>WebGL Demo</title>
 		<script src="/socket.io/socket.io.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
 		<script>
-		  var socket = io.connect('http://localhost:8080');
 
-		  socket.on('frame', function(data) {
-		  	console.log(data);
+		  $(function(){
+
+		  	  $('#stream').attr("disabled", "disabled");
+
+			  var socket = io.connect('http://localhost:8080');
+
+			  socket.on('connect', function() {
+			  	// Anything special?
+
+			  	$('#stream').removeAttr("disabled");
+			  	$('#stream').click(function() {
+			  		socket.emit('startStream', {quality: 1});
+			  	});
+
+			  	socket.on('frame', function(data) {
+			  		$('#console').append(data.frame);
+			  	})
+
+			  });
 		  });
 		</script>
 	</head>
 	<body>
+		<input type="button" id="stream" value="Stream" />
+		<div id="console">
+
+		</div>
 	</body>
 </html>
 
