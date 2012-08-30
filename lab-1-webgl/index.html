@@ -1,0 +1,16 @@
+<html>
+	<head>
+		<title>WebGL Demo</title>
+		<script src="/socket.io/socket.io.js"></script>
+		<script>
+		  var socket = io.connect('http://localhost:8080');
+
+		  socket.on('frame', function(data) {
+		  	console.log(data);
+		  });
+		</script>
+	</head>
+	<body>
+	</body>
+</html>
+
