@@ -16,16 +16,30 @@
 
 			  	$('#stream').removeAttr("disabled");
 			  	$('#stream').click(function() {
-			  		socket.emit('startStream', {quality: 1});
+			  		socket.emit('startStream', {detail: 1});
 			  	});
 
 			  	socket.on('frame', function(data) {
-			  		$('#console').append(data.frame);
+
+			  		// This is where Andor works his magic
+			  		// At this point, you have received a frame of data
+			  		// from a CSV file
+			  		// data.frame is a javascript array
+			  		// Each element of the array is a line from the CSV
+			  		// data.index refers to the actual frame #
+
+			  		//$('#console').append($('<div>').html(data.frame.join('<br />')));
+			  		$('#console').text('Received frame #' + data.index);
 			  	})
 
 			  });
 		  });
 		</script>
+		<style>
+			#console {
+				font-family: Courier;
+			}
+		</style>
 	</head>
 	<body>
 		<input type="button" id="stream" value="Stream" />
