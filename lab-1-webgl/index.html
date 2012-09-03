@@ -1,51 +1,119 @@
 <html>
-	<head>
-		<title>WebGL Demo</title>
-		<script src="/socket.io/socket.io.js"></script>
-		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
-		<script>
+    <head>
+        <title>WebGL Demo</title>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="https://raw.github.com/asalga/three.js/master/build/three.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+        <script>
 
-		  $(function(){
+          $(function(){
 
-		  	  $('#stream').attr("disabled", "disabled");
+              $('#stream').attr("disabled", "disabled");
 
-			  var socket = io.connect('http://localhost:8080');
+              var socket = io.connect('http://localhost:8080');
+              var points = [];
+              var container;
+              var camera, scene, projector, renderer;
+              var numPoints = 0;
 
-			  socket.on('connect', function() {
-			  	// Anything special?
+              var programFill = function ( context ) {
+                  context.beginPath();
+                  context.arc( 0, 0, 1, 0, Math.PI * 2, true );
+                  context.closePath();
+                  context.fill();
+              }
 
-			  	$('#stream').removeAttr("disabled");
-			  	$('#stream').click(function() {
-			  		socket.emit('startStream', {detail: 1});
-			  	});
+              init();
+              animate();
 
-			  	socket.on('frame', function(data) {
+              function init() {
 
-			  		// This is where Andor works his magic
-			  		// At this point, you have received a frame of data
-			  		// from a CSV file
-			  		// data.frame is a javascript array
-			  		// Each element of the array is a line from the CSV
-			  		// data.index refers to the actual frame #
+                  container = document.createElement( 'div' );
+                  document.body.appendChild( container );
 
-			  		//$('#console').append($('<div>').html(data.frame.join('<br />')));
-			  		$('#console').text('Received frame #' + data.index);
-			  	})
+                  camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
+                  camera.position.set( 130, -200, 140 );
 
-			  });
-		  });
-		</script>
-		<style>
-			#console {
-				font-family: Courier;
-			}
-		</style>
-	</head>
-	<body>
-		<input type="button" id="stream" value="Stream" />
-		<div id="console">
+                  scene = new THREE.Scene();
+                  projector = new THREE.Projector();
 
-		</div>
-	</body>
+                  renderer = new THREE.CanvasRenderer();
+                  renderer.setSize( window.innerWidth, window.innerHeight );
+
+                  container.appendChild( renderer.domElement );
+                  window.addEventListener( 'resize', onWindowResize, false );
+              }
+
+              function onWindowResize() {
+                  camera.aspect = window.innerWidth / window.innerHeight;
+                  camera.updateProjectionMatrix();
+                  renderer.setSize( window.innerWidth, window.innerHeight );
+              }
+
+              //
+              function animate() {
+                  requestAnimationFrame( animate );
+                  render();
+              }
+
+              function render() {
+                  renderer.render( scene, camera );
+              }
+
+                socket.on('connect', function() {
+                // Anything special?
+
+                $('#stream').removeAttr("disabled");
+                $('#stream').click(function() {
+                    socket.emit('startStream', {detail: 1});
+                });
+
+                socket.on('frame', function(data) {
+                    // At this point, you have received a frame of data
+                    // from a CSV file
+                    // data.frame is a javascript array
+                    // Each element of the array is a line from the CSV
+                    // data.index refers to the actual frame #
+
+                    //$('#console').append($('<div>').html(data.frame.join('<br />')));
+
+                    if(numPoints === 0){
+                        numPoints = data.frame.length;
+                        console.
+                        log(numPoints);
+
+                        points = [];
+
+                        for ( var i = 0; i < numPoints; i ++ ) {
+                            points[i] = new THREE.Particle( new THREE.ParticleCanvasMaterial( { color: 0x808080, program: programFill } ) );
+                            points[i].scale.x = points[i].scale.y =  2;
+                            scene.add( points[i] );
+                       }
+                    }
+
+                    for(var i = 0; i < numPoints; i++){
+                      if(data.frame[i]){
+                          points[i].position.x = data.frame[i][0];
+                          points[i].position.y = -data.frame[i][1]
+                          points[i].position.z = data.frame[i][2];
+                          points[i].scale.x = points[i].scale.y = 0.02 * data.frame[i][3];
+                       }
+                    }
+                });
+            });
+        });
+        </script>
+
+        <style>
+            #console {
+                font-family: Courier;
+            }
+        </style>
+    </head>
+    <body>
+        <input type="button" id="stream" value="Stream" />
+        <div id="console">
+
+        </div>
+    </body>
 </html>
-
