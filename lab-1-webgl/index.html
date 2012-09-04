@@ -2,118 +2,194 @@
     <head>
         <title>WebGL Demo</title>
         <script src="/socket.io/socket.io.js"></script>
+        <script src="https://raw.github.com/asalga/three.js/master/examples/js/Stats.js"></script>
         <script src="https://raw.github.com/asalga/three.js/master/build/three.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+        <script type="x-shader/x-vertex" id="vertexshader">
+          attribute float size;
+          attribute vec3 pos;
+          varying vec4 vColor;
+
+          void main() {
+            // size/intensity ranges from 0 to 255.We normalize it here.
+            vColor = vec4(size/255.0);
+            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+            gl_PointSize = size / 20.0;
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        </script>
+
+        <script type="x-shader/x-fragment" id="fragmentshader">
+          uniform vec3 color;
+          varying vec4 vColor;
+
+          void main() {
+             if(distance(gl_PointCoord, vec2(0.5)) > 0.5){
+              discard;
+            }
+            gl_FragColor = vColor;
+          }
+        </script>
+
+
         <script>
+         $(function () {
 
-          $(function(){
+             $('#stream').attr("disabled", "disabled");
+             var socket = io.connect('http://localhost:8080');
 
-              $('#stream').attr("disabled", "disabled");
+             var renderer, scene, camera, stats, controls;
+             var uniforms, attributes;
+             var setup = false;
+             var shaderMaterial;
 
-              var socket = io.connect('http://localhost:8080');
-              var points = [];
-              var container;
-              var camera, scene, projector, renderer;
-              var numPoints = 0;
+             var values_size;
+             var values_pos;
 
-              var programFill = function ( context ) {
-                  context.beginPath();
-                  context.arc( 0, 0, 1, 0, Math.PI * 2, true );
-                  context.closePath();
-                  context.fill();
-              }
+             var WIDTH = window.innerWidth;
+             var HEIGHT = window.innerHeight;
 
-              init();
-              animate();
+             init();
+             animate();
 
-              function init() {
+             function animate() {
+                 requestAnimationFrame(animate);
+                 controls.update();
+                 render();
+                 stats.update();
+             }
 
-                  container = document.createElement( 'div' );
-                  document.body.appendChild( container );
+             function doSetup(data) {
+                 setup = true;
+                 var geometry = new THREE.Geometry();
 
-                  camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
-                  camera.position.set( 130, -200, 140 );
+                 for (var i = 0; i < data.frame.length; i++) {
+                     geometry.vertices.push(new THREE.Vector3());
+                 }
 
-                  scene = new THREE.Scene();
-                  projector = new THREE.Projector();
+                 // particle system
+                 var object = new THREE.ParticleSystem(geometry, shaderMaterial);
+                 object.dynamic = true;
 
-                  renderer = new THREE.CanvasRenderer();
-                  renderer.setSize( window.innerWidth, window.innerHeight );
+                 for (var v = 0; v < object.geometry.vertices.length; v++) {
+                     attributes.size.value[v] = 0;
+                 }
 
-                  container.appendChild( renderer.domElement );
-                  window.addEventListener( 'resize', onWindowResize, false );
-              }
+                 scene.add(object);
+             }
 
-              function onWindowResize() {
-                  camera.aspect = window.innerWidth / window.innerHeight;
-                  camera.updateProjectionMatrix();
-                  renderer.setSize( window.innerWidth, window.innerHeight );
-              }
+             function render() {
+                 renderer.render(scene, camera);
+             }
 
-              //
-              function animate() {
-                  requestAnimationFrame( animate );
-                  render();
-              }
+             function init() {
 
-              function render() {
-                  renderer.render( scene, camera );
-              }
+                 camera = new THREE.PerspectiveCamera(40, WIDTH / HEIGHT, 1, 10000);
+                 camera.position.z = 500;
 
-                socket.on('connect', function() {
-                // Anything special?
+                 scene = new THREE.Scene();
 
-                $('#stream').removeAttr("disabled");
-                $('#stream').click(function() {
-                    socket.emit('startStream', {detail: 1});
-                });
+                 attributes = {
+                     size: {
+                         type: 'f',
+                         value: []
+                     },
+                     pos: {
+                         type: "v3",
+                         value: []
+                     }
+                 };
 
-                socket.on('frame', function(data) {
-                    // At this point, you have received a frame of data
-                    // from a CSV file
-                    // data.frame is a javascript array
-                    // Each element of the array is a line from the CSV
-                    // data.index refers to the actual frame #
+                 shaderMaterial = new THREE.ShaderMaterial({
+                     attributes: attributes,
+                     vertexShader: document.getElementById('vertexshader').textContent,
+                     fragmentShader: document.getElementById('fragmentshader').textContent
+                 });
 
-                    //$('#console').append($('<div>').html(data.frame.join('<br />')));
+                 renderer = new THREE.WebGLRenderer();
+                 renderer.setSize(WIDTH, window.innerHeight);
 
-                    if(numPoints === 0){
-                        numPoints = data.frame.length;
-                        console.
-                        log(numPoints);
+                 controls = new THREE.TrackballControls(camera, renderer.domElement);
+                 controls.target.set(0, 50, 0);
 
-                        points = [];
+                 var container = document.getElementById('container');
+                 container.appendChild(renderer.domElement);
 
-                        for ( var i = 0; i < numPoints; i ++ ) {
-                            points[i] = new THREE.Particle( new THREE.ParticleCanvasMaterial( { color: 0x808080, program: programFill } ) );
-                            points[i].scale.x = points[i].scale.y =  2;
-                            scene.add( points[i] );
-                       }
-                    }
+                 stats = new Stats();
+                 stats.domElement.style.position = 'absolute';
+                 stats.domElement.style.top = '0px';
+                 container.appendChild(stats.domElement);
 
-                    for(var i = 0; i < numPoints; i++){
-                      if(data.frame[i]){
-                          points[i].position.x = data.frame[i][0];
-                          points[i].position.y = -data.frame[i][1]
-                          points[i].position.z = data.frame[i][2];
-                          points[i].scale.x = points[i].scale.y = 0.02 * data.frame[i][3];
-                       }
-                    }
-                });
-            });
-        });
+                 function onWindowResize() {
+                     camera.aspect = WIDTH / HEIGHT;
+                     camera.updateProjectionMatrix();
+                     renderer.setSize(WIDTH, HEIGHT);
+                 }
+
+                 window.addEventListener('resize', onWindowResize, false);
+             }
+
+             $('#stream').removeAttr("disabled");
+             $('#stream').click(function () {
+                 socket.emit('startStream', {
+                     detail: 1
+                 });
+             });
+
+             socket.on('frame', function (data) {
+
+                 if (!setup && data.frame.length > 1) {
+                     doSetup(data);
+                 }
+
+                 if (data.frame) {
+                     for (var i = 0; i < attributes.size.value.length; i++) {
+                         attributes.size.value[i] = data.frame[i][3];
+                         attributes.pos.value[i] = {
+                             x: +data.frame[i][0] - 90,
+                             y: -data.frame[i][1] + 200,
+                             z: +data.frame[i][2] + 90
+                         };
+                     }
+                     attributes.size.needsUpdate = true;
+                     attributes.pos.needsUpdate = true;
+                 }
+             });
+         });
         </script>
 
         <style>
+            body{
+              background: rgb(0,0,0); /* Old browsers */
+              background: -moz-radial-gradient(center, ellipse cover, rgba(0,0,0,1) 0%, rgba(69,72,77,1) 100%); /* FF3.6+ */
+              background: -webkit-gradient(radial, center center, 0px, center center, 100%, color-stop(0%,rgba(0,0,0,1)), color-stop(100%,rgba(69,72,77,1))); /* Chrome,Safari4+ */
+              background: -webkit-radial-gradient(center, ellipse cover, rgba(0,0,0,1) 0%,rgba(69,72,77,1) 100%); /* Chrome10+,Safari5.1+ */
+              background: -o-radial-gradient(center, ellipse cover, rgba(0,0,0,1) 0%,rgba(69,72,77,1) 100%); /* Opera 12+ */
+              background: -ms-radial-gradient(center, ellipse cover, rgba(0,0,0,1) 0%,rgba(69,72,77,1) 100%); /* IE10+ */
+              background: radial-gradient(ellipse at center, rgba(0,0,0,1) 0%,rgba(69,72,77,1) 100%); /* W3C */
+              filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#000000', endColorstr='#45484d',GradientType=1 ); /* IE6-9 fallback on horizontal gradient */
+            }
+
+            #stream{
+              border: 1px dotted #FFF;
+              background: #000;
+              color: #FFF;
+              font-family: verdana;
+            }
             #console {
                 font-family: Courier;
+            }
+
+            #streamDiv {
+              text-align: center;
+              margin: 0 auto;
             }
         </style>
     </head>
     <body>
-        <input type="button" id="stream" value="Stream" />
+        <div id="streamDiv"><input type="button" id="stream" value="Stream"/></div>
+        <div id="container"></div>
         <div id="console">
-
         </div>
     </body>
 </html>
