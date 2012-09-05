@@ -1,51 +1,195 @@
 <html>
-	<head>
-		<title>WebGL Demo</title>
-		<script src="/socket.io/socket.io.js"></script>
-		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
-		<script>
+    <head>
+        <title>WebGL Demo</title>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="https://raw.github.com/asalga/three.js/master/examples/js/Stats.js"></script>
+        <script src="https://raw.github.com/asalga/three.js/master/build/three.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+        <script type="x-shader/x-vertex" id="vertexshader">
+          attribute float size;
+          attribute vec3 pos;
+          varying vec4 vColor;
 
-		  $(function(){
+          void main() {
+            // size/intensity ranges from 0 to 255.We normalize it here.
+            vColor = vec4(size/255.0);
+            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+            gl_PointSize = size / 20.0;
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        </script>
 
-		  	  $('#stream').attr("disabled", "disabled");
+        <script type="x-shader/x-fragment" id="fragmentshader">
+          uniform vec3 color;
+          varying vec4 vColor;
 
-			  var socket = io.connect('http://localhost:8080');
+          void main() {
+             if(distance(gl_PointCoord, vec2(0.5)) > 0.5){
+              discard;
+            }
+            gl_FragColor = vColor;
+          }
+        </script>
 
-			  socket.on('connect', function() {
-			  	// Anything special?
 
-			  	$('#stream').removeAttr("disabled");
-			  	$('#stream').click(function() {
-			  		socket.emit('startStream', {detail: 1});
-			  	});
+        <script>
+         $(function () {
 
-			  	socket.on('frame', function(data) {
+             $('#stream').attr("disabled", "disabled");
+             var socket = io.connect('http://localhost:8080');
 
-			  		// This is where Andor works his magic
-			  		// At this point, you have received a frame of data
-			  		// from a CSV file
-			  		// data.frame is a javascript array
-			  		// Each element of the array is a line from the CSV
-			  		// data.index refers to the actual frame #
+             var renderer, scene, camera, stats, controls;
+             var uniforms, attributes;
+             var setup = false;
+             var shaderMaterial;
 
-			  		//$('#console').append($('<div>').html(data.frame.join('<br />')));
-			  		$('#console').text('Received frame #' + data.index);
-			  	})
+             var values_size;
+             var values_pos;
 
-			  });
-		  });
-		</script>
-		<style>
-			#console {
-				font-family: Courier;
-			}
-		</style>
-	</head>
-	<body>
-		<input type="button" id="stream" value="Stream" />
-		<div id="console">
+             var WIDTH = window.innerWidth;
+             var HEIGHT = window.innerHeight;
 
-		</div>
-	</body>
+             init();
+             animate();
+
+             function animate() {
+                 requestAnimationFrame(animate);
+                 controls.update();
+                 render();
+                 stats.update();
+             }
+
+             function doSetup(data) {
+                 setup = true;
+                 var geometry = new THREE.Geometry();
+
+                 for (var i = 0; i < data.frame.length; i++) {
+                     geometry.vertices.push(new THREE.Vector3());
+                 }
+
+                 // particle system
+                 var object = new THREE.ParticleSystem(geometry, shaderMaterial);
+                 object.dynamic = true;
+
+                 for (var v = 0; v < object.geometry.vertices.length; v++) {
+                     attributes.size.value[v] = 0;
+                 }
+
+                 scene.add(object);
+             }
+
+             function render() {
+                 renderer.render(scene, camera);
+             }
+
+             function init() {
+
+                 camera = new THREE.PerspectiveCamera(40, WIDTH / HEIGHT, 1, 10000);
+                 camera.position.z = 500;
+
+                 scene = new THREE.Scene();
+
+                 attributes = {
+                     size: {
+                         type: 'f',
+                         value: []
+                     },
+                     pos: {
+                         type: "v3",
+                         value: []
+                     }
+                 };
+
+                 shaderMaterial = new THREE.ShaderMaterial({
+                     attributes: attributes,
+                     vertexShader: document.getElementById('vertexshader').textContent,
+                     fragmentShader: document.getElementById('fragmentshader').textContent
+                 });
+
+                 renderer = new THREE.WebGLRenderer();
+                 renderer.setSize(WIDTH, window.innerHeight);
+
+                 controls = new THREE.TrackballControls(camera, renderer.domElement);
+                 controls.target.set(0, 50, 0);
+
+                 var container = document.getElementById('container');
+                 container.appendChild(renderer.domElement);
+
+                 stats = new Stats();
+                 stats.domElement.style.position = 'absolute';
+                 stats.domElement.style.top = '0px';
+                 container.appendChild(stats.domElement);
+
+                 function onWindowResize() {
+                     camera.aspect = WIDTH / HEIGHT;
+                     camera.updateProjectionMatrix();
+                     renderer.setSize(WIDTH, HEIGHT);
+                 }
+
+                 window.addEventListener('resize', onWindowResize, false);
+             }
+
+             $('#stream').removeAttr("disabled");
+             $('#stream').click(function () {
+                 socket.emit('startStream', {
+                     detail: 1
+                 });
+             });
+
+             socket.on('frame', function (data) {
+
+                 if (!setup && data.frame.length > 1) {
+                     doSetup(data);
+                 }
+
+                 if (data.frame) {
+                     for (var i = 0; i < attributes.size.value.length; i++) {
+                         attributes.size.value[i] = data.frame[i][3];
+                         attributes.pos.value[i] = {
+                             x: +data.frame[i][0] - 90,
+                             y: -data.frame[i][1] + 200,
+                             z: +data.frame[i][2] + 90
+                         };
+                     }
+                     attributes.size.needsUpdate = true;
+                     attributes.pos.needsUpdate = true;
+                 }
+             });
+         });
+        </script>
+
+        <style>
+            body{
+              background: rgb(0,0,0); /* Old browsers */
+              background: -moz-radial-gradient(center, ellipse cover, rgba(0,0,0,1) 0%, rgba(69,72,77,1) 100%); /* FF3.6+ */
+              background: -webkit-gradient(radial, center center, 0px, center center, 100%, color-stop(0%,rgba(0,0,0,1)), color-stop(100%,rgba(69,72,77,1))); /* Chrome,Safari4+ */
+              background: -webkit-radial-gradient(center, ellipse cover, rgba(0,0,0,1) 0%,rgba(69,72,77,1) 100%); /* Chrome10+,Safari5.1+ */
+              background: -o-radial-gradient(center, ellipse cover, rgba(0,0,0,1) 0%,rgba(69,72,77,1) 100%); /* Opera 12+ */
+              background: -ms-radial-gradient(center, ellipse cover, rgba(0,0,0,1) 0%,rgba(69,72,77,1) 100%); /* IE10+ */
+              background: radial-gradient(ellipse at center, rgba(0,0,0,1) 0%,rgba(69,72,77,1) 100%); /* W3C */
+              filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#000000', endColorstr='#45484d',GradientType=1 ); /* IE6-9 fallback on horizontal gradient */
+            }
+
+            #stream{
+              border: 1px dotted #FFF;
+              background: #000;
+              color: #FFF;
+              font-family: verdana;
+            }
+            #console {
+                font-family: Courier;
+            }
+
+            #streamDiv {
+              text-align: center;
+              margin: 0 auto;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="streamDiv"><input type="button" id="stream" value="Stream"/></div>
+        <div id="container"></div>
+        <div id="console">
+        </div>
+    </body>
 </html>
-
