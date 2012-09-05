@@ -10,8 +10,6 @@ var fs  = require('fs');
 
 server.listen(8080);
 
-// Load datasets into memory
-
 app.get('/', function (req, res) {
   res.sendfile(__dirname + '/index.html');
 });
@@ -47,15 +45,20 @@ io.sockets.on('connection', function (socket) {
     // Open the CSV, parse it
      csv().fromPath(path)
      .on('data', function(data,index){
+
+        // Since all frames are in a single CSV for the highest performance,
+        // check for the 'end of frame'
         if(data[0] === 'eof') {
-          //console.log('Sending frame from');
-          //console.log(rows);
+
+          // If it's the end of the frame, send it off
           socket.emit('frame', {index: count, frame: rows});
 
+          // housework
           count++;
           rows = [];
         }
 
+        // If it's not the end of frame, add it to the row buffer
         rows.push(data);
      })
      .on('end', function() {
