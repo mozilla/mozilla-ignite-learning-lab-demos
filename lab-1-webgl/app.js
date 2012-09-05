@@ -44,26 +44,27 @@ io.sockets.on('connection', function (socket) {
 
     // Open the CSV, parse it
     csv().fromPath(path)
-    .on('data', function(data,index){
+      .on('data', function(data,index) {
 
-      // Since all frames are in a single CSV for the highest performance,
-      // check for the 'end of frame'
-      if(data[0] === 'eof') {
+        // Since all frames are in a single CSV for the highest performance,
+        // check for the 'end of frame'
+        if(data[0] === 'eof') {
 
-        // If it's the end of the frame, send it off
-        socket.emit('frame', {index: count, frame: rows});
+          // If it's the end of the frame, send it off
+          socket.emit('frame', {index: count, frame: rows});
 
-        // housework
-        count++;
-        rows = [];
-      }
+          // housework
+          count++;
+          rows = [];
+        }
 
-      // If it's not the end of frame, add it to the row buffer
-      rows.push(data);
-    })
-    .on('end', function() {
-      console.log('Done sending frames')
-     });
+        // If it's not the end of frame, add it to the row buffer
+        rows.push(data);
+      })
+      .on('end', function() {
+        console.log('Done sending frames')
+      });
+
   });
  
 });
