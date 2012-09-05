@@ -6,9 +6,9 @@ This is a demo demonstrating the streaming of 3D point clouds over the wire, and
 
 A `node.js` installation, and Chrome or Firefox
 
-## Running
+## How to Run It
 
-    node app.js
+    $ node app.js
 
 Then head to http://localhost:8080/
 
