@@ -142,24 +142,27 @@
                      doSetup(data);
                  }
 
-                 if (data.frame) {
-                     for (var i = 0; i < attributes.size.value.length; i++) {
-                         attributes.size.value[i] = data.frame[i][3];
+                 for (var i = 0; i < attributes.size.value.length; i++) {
+                     // We base the number of points in a frame by the first frame, so
+                     // if we have less data than expected in a certain frame, don't blow up.
+                     if(data.frame[i]){
                          attributes.pos.value[i] = {
+                             // These values offset the point cloud so it rotates on its center.
                              x: +data.frame[i][0] - 90,
                              y: -data.frame[i][1] + 200,
                              z: +data.frame[i][2] + 90
                          };
+                         attributes.size.value[i] = data.frame[i][3];
                      }
-                     attributes.size.needsUpdate = true;
-                     attributes.pos.needsUpdate = true;
                  }
+                 attributes.size.needsUpdate = true;
+                 attributes.pos.needsUpdate = true;
              });
          });
         </script>
 
         <style>
-            body{
+            body {
               background: rgb(0,0,0); /* Old browsers */
               background: -moz-radial-gradient(center, ellipse cover, rgba(0,0,0,1) 0%, rgba(69,72,77,1) 100%); /* FF3.6+ */
               background: -webkit-gradient(radial, center center, 0px, center center, 100%, color-stop(0%,rgba(0,0,0,1)), color-stop(100%,rgba(69,72,77,1))); /* Chrome,Safari4+ */
@@ -170,19 +173,19 @@
               filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#000000', endColorstr='#45484d',GradientType=1 ); /* IE6-9 fallback on horizontal gradient */
             }
 
-            #stream{
-              border: 1px dotted #FFF;
-              background: #000;
-              color: #FFF;
-              font-family: verdana;
+            #stream {
+                border: 1px dotted #FFF;
+                background: #000;
+                color: #FFF;
+                font-family: verdana;
             }
             #console {
                 font-family: Courier;
             }
 
             #streamDiv {
-              text-align: center;
-              margin: 0 auto;
+                text-align: center;
+                margin: 0 auto;
             }
         </style>
     </head>
