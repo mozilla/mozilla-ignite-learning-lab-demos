@@ -107,7 +107,7 @@
                  });
 
                  renderer = new THREE.WebGLRenderer();
-                 renderer.setSize(WIDTH, window.innerHeight);
+                 renderer.setSize(WIDTH, HEIGHT);
 
                  controls = new THREE.TrackballControls(camera, renderer.domElement);
                  controls.target.set(0, 50, 0);
@@ -123,7 +123,7 @@
                  function onWindowResize() {
                      camera.aspect = WIDTH / HEIGHT;
                      camera.updateProjectionMatrix();
-                     renderer.setSize(WIDTH, HEIGHT);
+                     renderer.setSize( window.innerWidth, window.innerHeight );
                  }
 
                  window.addEventListener('resize', onWindowResize, false);
