@@ -10,6 +10,9 @@ var fs  = require('fs');
 
 server.listen(8080);
 
+// Set up place for static files
+app.use("/public", express.static(__dirname + '/public'));
+
 app.get('/', function (req, res) {
   res.sendfile(__dirname + '/index.html');
 });
