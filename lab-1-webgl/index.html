@@ -43,6 +43,7 @@
              var setup = false;
              var shaderMaterial;
 
+             var fov = 40;
              var values_size;
              var values_pos;
 
@@ -84,7 +85,7 @@
 
              function init() {
 
-                 camera = new THREE.PerspectiveCamera(40, WIDTH / HEIGHT, 1, 10000);
+                 camera = new THREE.PerspectiveCamera(fov, WIDTH / HEIGHT, 1, 10000);
                  camera.position.z = 500;
 
                  scene = new THREE.Scene();
@@ -122,11 +123,24 @@
 
                  function onWindowResize() {
                      camera.aspect = WIDTH / HEIGHT;
-                     camera.updateProjectionMatrix();
+                     camera.projectionMatrix = camera.projectionMatrix.makePerspective( fov, window.innerWidth / window.innerHeight, 1, 10000 );
                      renderer.setSize( window.innerWidth, window.innerHeight );
                  }
 
+                 function onDocumentMouseWheel( event ) {
+                    fov -= event.detail * 0.5;
+                    if(fov < 5){
+                        fov = 5;
+                    }
+                    else if(fov > 90){
+                        fov = 90;
+                    }
+                    camera.projectionMatrix = camera.projectionMatrix.makePerspective( fov, window.innerWidth / window.innerHeight, 1, 10000 );
+                }
+
+
                  window.addEventListener('resize', onWindowResize, false);
+                 window.addEventListener('DOMMouseScroll', onDocumentMouseWheel, false);
              }
 
              $('#stream').removeAttr("disabled");
