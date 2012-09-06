@@ -44,6 +44,7 @@
              var setup = false;
              var shaderMaterial;
 
+             var fov = 40;
              var values_size;
              var values_pos;
 
@@ -85,7 +86,7 @@
 
              function init() {
 
-                 camera = new THREE.PerspectiveCamera(40, WIDTH / HEIGHT, 1, 10000);
+                 camera = new THREE.PerspectiveCamera(fov, WIDTH / HEIGHT, 1, 10000);
                  camera.position.z = 500;
 
                  scene = new THREE.Scene();
@@ -108,7 +109,7 @@
                  });
 
                  renderer = new THREE.WebGLRenderer();
-                 renderer.setSize(WIDTH, window.innerHeight);
+                 renderer.setSize(WIDTH, HEIGHT);
 
                  controls = new THREE.TrackballControls(camera, renderer.domElement);
                  controls.target.set(0, 50, 0);
@@ -123,11 +124,24 @@
 
                  function onWindowResize() {
                      camera.aspect = WIDTH / HEIGHT;
-                     camera.updateProjectionMatrix();
-                     renderer.setSize(WIDTH, HEIGHT);
+                     camera.projectionMatrix = camera.projectionMatrix.makePerspective( fov, window.innerWidth / window.innerHeight, 1, 10000 );
+                     renderer.setSize( window.innerWidth, window.innerHeight );
                  }
 
+                 function onDocumentMouseWheel( event ) {
+                    fov -= event.detail * 0.5;
+                    if(fov < 5){
+                        fov = 5;
+                    }
+                    else if(fov > 90){
+                        fov = 90;
+                    }
+                    camera.projectionMatrix = camera.projectionMatrix.makePerspective( fov, window.innerWidth / window.innerHeight, 1, 10000 );
+                }
+
+
                  window.addEventListener('resize', onWindowResize, false);
+                 window.addEventListener('DOMMouseScroll', onDocumentMouseWheel, false);
              }
 
              $('#stream').removeAttr("disabled");
@@ -143,24 +157,27 @@
                      doSetup(data);
                  }
 
-                 if (data.frame) {
-                     for (var i = 0; i < attributes.size.value.length; i++) {
-                         attributes.size.value[i] = data.frame[i][3];
+                 for (var i = 0; i < attributes.size.value.length; i++) {
+                     // We base the number of points in a frame by the first frame, so
+                     // if we have less data than expected in a certain frame, don't blow up.
+                     if(data.frame[i]){
                          attributes.pos.value[i] = {
+                             // These values offset the point cloud so it rotates on its center.
                              x: +data.frame[i][0] - 90,
                              y: -data.frame[i][1] + 200,
                              z: +data.frame[i][2] + 90
                          };
+                         attributes.size.value[i] = data.frame[i][3];
                      }
-                     attributes.size.needsUpdate = true;
-                     attributes.pos.needsUpdate = true;
                  }
+                 attributes.size.needsUpdate = true;
+                 attributes.pos.needsUpdate = true;
              });
          });
         </script>
 
         <style>
-            body{
+            body {
               background: rgb(0,0,0); /* Old browsers */
               background: -moz-radial-gradient(center, ellipse cover, rgba(0,0,0,1) 0%, rgba(69,72,77,1) 100%); /* FF3.6+ */
               background: -webkit-gradient(radial, center center, 0px, center center, 100%, color-stop(0%,rgba(0,0,0,1)), color-stop(100%,rgba(69,72,77,1))); /* Chrome,Safari4+ */
@@ -169,21 +186,22 @@
               background: -ms-radial-gradient(center, ellipse cover, rgba(0,0,0,1) 0%,rgba(69,72,77,1) 100%); /* IE10+ */
               background: radial-gradient(ellipse at center, rgba(0,0,0,1) 0%,rgba(69,72,77,1) 100%); /* W3C */
               filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#000000', endColorstr='#45484d',GradientType=1 ); /* IE6-9 fallback on horizontal gradient */
+              overflow: hidden;
             }
 
-            #stream{
-              border: 1px dotted #FFF;
-              background: #000;
-              color: #FFF;
-              font-family: verdana;
+            #stream {
+                border: 1px dotted #FFF;
+                background: #000;
+                color: #FFF;
+                font-family: verdana;
             }
             #console {
                 font-family: Courier;
             }
 
             #streamDiv {
-              text-align: center;
-              margin: 0 auto;
+                text-align: center;
+                margin: 0 auto;
             }
         </style>
     </head>
