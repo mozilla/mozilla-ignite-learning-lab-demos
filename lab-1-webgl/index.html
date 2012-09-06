@@ -3,8 +3,8 @@
         <title>WebGL Demo</title>
         <script src="/socket.io/socket.io.js"></script>
         <script src="/public/js/three.min.js"></script>
-        <script src="https://raw.github.com/asalga/three.js/master/examples/js/Stats.js"></script>
-        <script src="https://raw.github.com/asalga/three.js/master/build/three.min.js"></script>
+        <script src="/public/js/Stats.js"></script>
+        <script src="/public/js/dat.gui.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
         <script type="x-shader/x-vertex" id="vertexshader">
           attribute float size;
@@ -38,6 +38,10 @@
 
              $('#stream').attr("disabled", "disabled");
              var socket = io.connect('http://localhost:8080');
+
+             var controlData = {
+                Throughput : 100
+             }
 
              var renderer, scene, camera, stats, controls;
              var uniforms, attributes;
@@ -117,10 +121,24 @@
                  var container = document.getElementById('container');
                  container.appendChild(renderer.domElement);
 
+                 // FPS stats
                  stats = new Stats();
                  stats.domElement.style.position = 'absolute';
                  stats.domElement.style.top = '0px';
                  container.appendChild(stats.domElement);
+                
+                 createGUI();
+
+                 function createGUI() {
+                     var gui = new dat.GUI({height:100}),
+                     $gui  = $('#guidat');
+
+                     $gui.css({
+                         right: 'auto',
+                         left: 10
+                     });
+                     gui.add(controlData, 'Throughput').name('Speed').min(0).max(100);
+                 }
 
                  function onWindowResize() {
                      camera.aspect = WIDTH / HEIGHT;
@@ -139,7 +157,6 @@
                     camera.projectionMatrix = camera.projectionMatrix.makePerspective( fov, window.innerWidth / window.innerHeight, 1, 10000 );
                 }
 
-
                  window.addEventListener('resize', onWindowResize, false);
                  window.addEventListener('DOMMouseScroll', onDocumentMouseWheel, false);
              }
@@ -157,7 +174,18 @@
                      doSetup(data);
                  }
 
-                 for (var i = 0; i < attributes.size.value.length; i++) {
+                 var totalPoints = attributes.size.value.length;
+                 var pointsToUpdate = attributes.size.value.length * (controlData.Throughput/100);
+
+                 // I don't want to keep removing and adding points to the particle system, so 
+                 // we're going to hide and undie them when necessary.
+                 for(var i = 0; i < totalPoints; i++){
+                    if(data.frame[i]){
+                        attributes.size.value[i] = 0;
+                    }
+                 }
+
+                 for (var i = 0; i < pointsToUpdate; i++) {
                      // We base the number of points in a frame by the first frame, so
                      // if we have less data than expected in a certain frame, don't blow up.
                      if(data.frame[i]){
@@ -170,6 +198,7 @@
                          attributes.size.value[i] = data.frame[i][3];
                      }
                  }
+
                  attributes.size.needsUpdate = true;
                  attributes.pos.needsUpdate = true;
              });
