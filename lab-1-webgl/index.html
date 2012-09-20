@@ -25,6 +25,7 @@
           varying vec4 vColor;
 
           void main() {
+             // Make the points circles
              if(distance(gl_PointCoord, vec2(0.5)) > 0.5){
               discard;
             }
@@ -34,179 +35,192 @@
 
 
         <script>
-         $(function () {
+        $(function () {
 
-             $('#stream').attr("disabled", "disabled");
-             var socket = io.connect('http://localhost:8080');
+            $('#stream').attr("disabled", "disabled");
+            var socket = io.connect('http://localhost:8080');
 
-             var controlData = {
-                Throughput : 100
-             }
+            var controlData = {
+                StreamData: 100
+            };
 
-             var renderer, scene, camera, stats, controls;
-             var uniforms, attributes;
-             var setup = false;
-             var shaderMaterial;
+            var renderer, scene, camera, stats, controls;
+            var uniforms, attributes;
+            var setup = false;
+            var shaderMaterial;
 
-             var fov = 40;
-             var values_size;
-             var values_pos;
 
-             var WIDTH = window.innerWidth;
-             var HEIGHT = window.innerHeight;
+            var WIDTH = window.innerWidth;
+            var HEIGHT = window.innerHeight;
+            var fov = 40;
 
-             init();
-             animate();
+            init();
+            animate();
 
-             function animate() {
-                 requestAnimationFrame(animate);
-                 controls.update();
-                 render();
-                 stats.update();
-             }
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                render();
+                stats.update();
+            }
 
-             function doSetup(data) {
-                 setup = true;
-                 var geometry = new THREE.Geometry();
+            function doSetup(data) {
+                setup = true;
+                var geometry = new THREE.Geometry();
 
-                 for (var i = 0; i < data.frame.length; i++) {
-                     geometry.vertices.push(new THREE.Vector3());
-                 }
-
-                 // particle system
-                 var object = new THREE.ParticleSystem(geometry, shaderMaterial);
-                 object.dynamic = true;
-
-                 for (var v = 0; v < object.geometry.vertices.length; v++) {
-                     attributes.size.value[v] = 0;
-                 }
-
-                 scene.add(object);
-             }
-
-             function render() {
-                 renderer.render(scene, camera);
-             }
-
-             function init() {
-
-                 camera = new THREE.PerspectiveCamera(fov, WIDTH / HEIGHT, 1, 10000);
-                 camera.position.z = 500;
-
-                 scene = new THREE.Scene();
-
-                 attributes = {
-                     size: {
-                         type: 'f',
-                         value: []
-                     },
-                     pos: {
-                         type: "v3",
-                         value: []
-                     }
-                 };
-
-                 shaderMaterial = new THREE.ShaderMaterial({
-                     attributes: attributes,
-                     vertexShader: document.getElementById('vertexshader').textContent,
-                     fragmentShader: document.getElementById('fragmentshader').textContent
-                 });
-
-                 renderer = new THREE.WebGLRenderer();
-                 renderer.setSize(WIDTH, HEIGHT);
-
-                 controls = new THREE.TrackballControls(camera, renderer.domElement);
-                 controls.target.set(0, 50, 0);
-
-                 var container = document.getElementById('container');
-                 container.appendChild(renderer.domElement);
-
-                 // FPS stats
-                 stats = new Stats();
-                 stats.domElement.style.position = 'absolute';
-                 stats.domElement.style.top = '0px';
-                 container.appendChild(stats.domElement);
-                
-                 createGUI();
-
-                 function createGUI() {
-                     var gui = new dat.GUI({height:100}),
-                     $gui  = $('#guidat');
-
-                     $gui.css({
-                         right: 'auto',
-                         left: 10
-                     });
-                     gui.add(controlData, 'Throughput').name('Speed').min(0).max(100);
-                 }
-
-                 function onWindowResize() {
-                     camera.aspect = WIDTH / HEIGHT;
-                     camera.projectionMatrix = camera.projectionMatrix.makePerspective( fov, window.innerWidth / window.innerHeight, 1, 10000 );
-                     renderer.setSize( window.innerWidth, window.innerHeight );
-                 }
-
-                 function onDocumentMouseWheel( event ) {
-                    fov -= event.detail * 0.5;
-                    if(fov < 5){
-                        fov = 5;
-                    }
-                    else if(fov > 90){
-                        fov = 90;
-                    }
-                    camera.projectionMatrix = camera.projectionMatrix.makePerspective( fov, window.innerWidth / window.innerHeight, 1, 10000 );
+                for (var i = 0; i < data.frame.length; i++) {
+                    geometry.vertices.push(new THREE.Vector3());
                 }
 
-                 window.addEventListener('resize', onWindowResize, false);
-                 window.addEventListener('DOMMouseScroll', onDocumentMouseWheel, false);
-             }
+                // particle system
+                var object = new THREE.ParticleSystem(geometry, shaderMaterial);
+                object.dynamic = true;
 
-             $('#stream').removeAttr("disabled");
-             $('#stream').click(function () {
-                 socket.emit('startStream', {
-                     detail: 1
-                 });
-             });
+                for (var v = 0; v < object.geometry.vertices.length; v++) {
+                    attributes.size.value[v] = 0;
+                }
 
-             socket.on('frame', function (data) {
+                scene.add(object);
+            }
 
-                 if (!setup && data.frame.length > 1) {
-                     doSetup(data);
-                 }
+            function render() {
+                renderer.render(scene, camera);
+            }
 
-                 var totalPoints = attributes.size.value.length;
-                 var pointsToUpdate = attributes.size.value.length * (controlData.Throughput/100);
+            function init() {
 
-                 // I don't want to keep removing and adding points to the particle system, so 
-                 // we're going to hide and undie them when necessary.
-                 for(var i = 0; i < totalPoints; i++){
-                    if(data.frame[i]){
+                camera = new THREE.PerspectiveCamera(fov, WIDTH / HEIGHT, 1, 10000);
+                camera.position.z = 500;
+
+                scene = new THREE.Scene();
+
+                attributes = {
+                    size: {
+                        type: 'f',
+                        value: []
+                    },
+                    pos: {
+                        type: "v3",
+                        value: []
+                    }
+                };
+
+                shaderMaterial = new THREE.ShaderMaterial({
+                    attributes: attributes,
+                    vertexShader: document.getElementById('vertexshader').textContent,
+                    fragmentShader: document.getElementById('fragmentshader').textContent
+                });
+
+                renderer = new THREE.WebGLRenderer();
+                renderer.setSize(WIDTH, HEIGHT);
+
+                controls = new THREE.TrackballControls(camera, renderer.domElement);
+                controls.target.set(0, 50, 0);
+
+                var container = document.getElementById('container');
+                container.appendChild(renderer.domElement);
+
+                // FPS stats
+                stats = new Stats();
+                stats.domElement.style.position = 'absolute';
+                stats.domElement.style.top = '0px';
+                container.appendChild(stats.domElement);
+
+                createGUI();
+
+                function createGUI() {
+                    var gui = new dat.GUI({
+                        height: 100
+                    }),
+                        $gui = $('#guidat');
+
+                    $gui.css({
+                        right: 'auto',
+                        left: 10
+                    });
+
+                    //
+                    var streamDataController = gui.add(controlData, 'StreamData').name('StreamData').min(0).max(100);
+                    streamDataController.onChange(
+                    function (value) {
+                        socket.emit("streamdatachanged", {
+                            percent: value / 100
+                        });
+                    });
+                }
+
+                function onWindowResize() {
+                    camera.aspect = WIDTH / HEIGHT;
+                    camera.projectionMatrix = camera.projectionMatrix.makePerspective(fov, window.innerWidth / window.innerHeight, 1, 10000);
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                }
+
+                function onDocumentMouseWheel(event) {
+                    fov -= event.detail * 0.5;
+                    if (fov < 5) {
+                        fov = 5;
+                    } else if (fov > 90) {
+                        fov = 90;
+                    }
+                    camera.projectionMatrix = camera.projectionMatrix.makePerspective(fov, window.innerWidth / window.innerHeight, 1, 10000);
+                }
+
+                window.addEventListener('resize', onWindowResize, false);
+                window.addEventListener('DOMMouseScroll', onDocumentMouseWheel, false);
+            }
+
+            $('#stream').removeAttr("disabled");
+            $('#stream').click(function () {
+                socket.emit('startStream', {
+                    detail: 1
+                });
+            });
+
+            socket.on("framesize", function (data) {
+            });
+
+            socket.on('frame', function (data) {
+
+                if (!setup && data.frame.length > 1) {
+                    doSetup(data);
+                }
+
+                var totalPoints = attributes.size.value.length;
+                var pointsToUpdate = attributes.size.value.length * (controlData.StreamData / 100);
+                //streamData.StreamData/100);
+
+                // I don't want to keep removing and adding points to the particle system, so 
+                // we're going to hide and undie them when necessary.
+                for (var i = 0; i < totalPoints; i++) {
+                    if (data.frame[i]) {
                         attributes.size.value[i] = 0;
                     }
-                 }
+                }
 
-                 for (var i = 0; i < pointsToUpdate; i++) {
-                     // We base the number of points in a frame by the first frame, so
-                     // if we have less data than expected in a certain frame, don't blow up.
-                     if(data.frame[i]){
-                         attributes.pos.value[i] = {
-                             // These values offset the point cloud so it rotates on its center.
-                             x: +data.frame[i][0] - 90,
-                             y: -data.frame[i][1] + 200,
-                             z: +data.frame[i][2] + 90
-                         };
-                         attributes.size.value[i] = data.frame[i][3];
-                     }
-                 }
+                for (var i = 0; i < pointsToUpdate; i++) {
+                    // We base the number of points in a frame by the first frame, so
+                    // if we have less data than expected in a certain frame, don't blow up.
+                    if (data.frame[i]) {
+                        attributes.pos.value[i] = {
+                            // These values offset the point cloud so it rotates on its center.
+                            x: +data.frame[i][0] - 90,
+                            y: -data.frame[i][1] + 200,
+                            z: +data.frame[i][2] + 90
+                        };
+                        attributes.size.value[i] = data.frame[i][3];
+                    }
+                }
 
-                 attributes.size.needsUpdate = true;
-                 attributes.pos.needsUpdate = true;
-             });
-         });
+                attributes.size.needsUpdate = true;
+                attributes.pos.needsUpdate = true;
+            });
+        });
         </script>
 
         <style>
             body {
+
+              /* Create a gradient for the background */
               background: rgb(0,0,0); /* Old browsers */
               background: -moz-radial-gradient(center, ellipse cover, rgba(0,0,0,1) 0%, rgba(69,72,77,1) 100%); /* FF3.6+ */
               background: -webkit-gradient(radial, center center, 0px, center center, 100%, color-stop(0%,rgba(0,0,0,1)), color-stop(100%,rgba(69,72,77,1))); /* Chrome,Safari4+ */
@@ -215,6 +229,8 @@
               background: -ms-radial-gradient(center, ellipse cover, rgba(0,0,0,1) 0%,rgba(69,72,77,1) 100%); /* IE10+ */
               background: radial-gradient(ellipse at center, rgba(0,0,0,1) 0%,rgba(69,72,77,1) 100%); /* W3C */
               filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#000000', endColorstr='#45484d',GradientType=1 ); /* IE6-9 fallback on horizontal gradient */
+
+              /* Scrollbars make the demo look ugly */
               overflow: hidden;
             }
 
@@ -224,6 +240,7 @@
                 color: #FFF;
                 font-family: verdana;
             }
+
             #console {
                 font-family: Courier;
             }
@@ -237,7 +254,6 @@
     <body>
         <div id="streamDiv"><input type="button" id="stream" value="Stream"/></div>
         <div id="container"></div>
-        <div id="console">
-        </div>
+        <div id="console"></div>
     </body>
 </html>
