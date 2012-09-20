@@ -7,30 +7,30 @@
         <script src="/public/js/dat.gui.min.js"></script>
         <script src="/public/js/jquery-1.4.2.min.js"></script>
         <script type="x-shader/x-vertex" id="vertexshader">
-          attribute float size;
-          attribute vec3 pos;
-          varying vec4 vColor;
+        attribute float size;
+        attribute vec3 pos;
+        varying vec4 vColor;
 
-          void main() {
+        void main() {
             // size/intensity ranges from 0 to 255.We normalize it here.
             vColor = vec4(size/255.0);
             vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
             gl_PointSize = size / 20.0;
             gl_Position = projectionMatrix * mvPosition;
-          }
+        }
         </script>
 
         <script type="x-shader/x-fragment" id="fragmentshader">
-          uniform vec3 color;
-          varying vec4 vColor;
+        uniform vec3 color;
+        varying vec4 vColor;
 
-          void main() {
-             // Make the points circles
-             if(distance(gl_PointCoord, vec2(0.5)) > 0.5){
-              discard;
+        void main() {
+            // Circles look better than squares
+            if(distance(gl_PointCoord, vec2(0.5)) > 0.5){
+                discard;
             }
             gl_FragColor = vColor;
-          }
+        }
         </script>
 
 
@@ -48,7 +48,6 @@
             var uniforms, attributes;
             var setup = false;
             var shaderMaterial;
-
 
             var WIDTH = window.innerWidth;
             var HEIGHT = window.innerHeight;
@@ -171,9 +170,16 @@
 
             $('#stream').removeAttr("disabled");
             $('#stream').click(function () {
-                socket.emit('startStream', {
-                    detail: 1
-                });
+
+                socket.emit('startStream');
+
+                // Why do we need this hack?
+                setTimeout(
+                    function(){
+                        socket.emit("streamdatachanged", {
+                            percent: 1
+                        });
+                }, 1000);
             });
 
             socket.on("framesize", function (data) {
@@ -187,7 +193,6 @@
 
                 var totalPoints = attributes.size.value.length;
                 var pointsToUpdate = attributes.size.value.length * (controlData.StreamData / 100);
-                //streamData.StreamData/100);
 
                 // I don't want to keep removing and adding points to the particle system, so 
                 // we're going to hide and undie them when necessary.
