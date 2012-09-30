@@ -156,7 +156,9 @@
                 }
 
                 function onDocumentMouseWheel(event) {
-                    fov -= event.detail * 0.5;
+                    var delta = (event.wheelDelta/360 || -event.detail/3);
+
+                    fov -= delta * 0.5;
                     if (fov < 5) {
                         fov = 5;
                     } else if (fov > 90) {
@@ -166,6 +168,7 @@
                 }
 
                 window.addEventListener('resize', onWindowResize, false);
+                window.addEventListener('mousewheel', onDocumentMouseWheel, false);
                 window.addEventListener('DOMMouseScroll', onDocumentMouseWheel, false);
             }
 
