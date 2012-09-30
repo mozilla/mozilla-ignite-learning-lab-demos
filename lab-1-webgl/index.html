@@ -48,6 +48,7 @@
             var uniforms, attributes;
             var setup = false;
             var shaderMaterial;
+            var totalPointsTransferred = 0;
 
             var WIDTH = window.innerWidth;
             var HEIGHT = window.innerHeight;
@@ -194,8 +195,11 @@
                 var totalPoints = attributes.size.value.length;
                 var pointsToUpdate = attributes.size.value.length * (controlData.StreamData / 100);
 
+                totalPointsTransferred++;
+                document.getElementById('frames').innerHTML = "frames: "+ totalPointsTransferred;
+
                 // I don't want to keep removing and adding points to the particle system, so 
-                // we're going to hide and undie them when necessary.
+                // we're going to hide and unhide them when necessary.
                 for (var i = 0; i < totalPoints; i++) {
                     if (data.frame[i]) {
                         attributes.size.value[i] = 0;
@@ -254,9 +258,16 @@
                 text-align: center;
                 margin: 0 auto;
             }
+
+            #frames {
+                position: fixed;
+                font-family: verdana;
+                bottom: 0px;
+            }
         </style>
     </head>
     <body>
+        <div id="frames" class="frames">frames:</div>
         <div id="streamDiv"><input type="button" id="stream" value="Stream"/></div>
         <div id="container"></div>
         <div id="console"></div>
