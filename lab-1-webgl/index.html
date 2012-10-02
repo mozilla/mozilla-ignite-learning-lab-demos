@@ -48,6 +48,7 @@
             var uniforms, attributes;
             var setup = false;
             var shaderMaterial;
+            var totalPointsTransferred = 0;
 
             var WIDTH = window.innerWidth;
             var HEIGHT = window.innerHeight;
@@ -155,7 +156,9 @@
                 }
 
                 function onDocumentMouseWheel(event) {
-                    fov -= event.detail * 0.5;
+                    var delta = (event.wheelDelta/360 || -event.detail/3);
+
+                    fov -= delta * 0.5;
                     if (fov < 5) {
                         fov = 5;
                     } else if (fov > 90) {
@@ -165,6 +168,7 @@
                 }
 
                 window.addEventListener('resize', onWindowResize, false);
+                window.addEventListener('mousewheel', onDocumentMouseWheel, false);
                 window.addEventListener('DOMMouseScroll', onDocumentMouseWheel, false);
             }
 
@@ -194,8 +198,11 @@
                 var totalPoints = attributes.size.value.length;
                 var pointsToUpdate = attributes.size.value.length * (controlData.StreamData / 100);
 
+                totalPointsTransferred++;
+                document.getElementById('frames').innerHTML = "frames: "+ totalPointsTransferred;
+
                 // I don't want to keep removing and adding points to the particle system, so 
-                // we're going to hide and undie them when necessary.
+                // we're going to hide and unhide them when necessary.
                 for (var i = 0; i < totalPoints; i++) {
                     if (data.frame[i]) {
                         attributes.size.value[i] = 0;
@@ -255,18 +262,29 @@
                 margin: 0 auto;
             }
 
+
             #notice {
                 position: absolute;
-                bottom: 10px;
+                bottom: 20px;
                 left: 10px;
                 width: 400px;
                 color: #fff; 
                 font-family: verdana;
                 font-size: 12px;
             }
+
+            #frames {
+                position: fixed;
+                font-family: verdana;
+                bottom: 0px;
+                left: 10px;
+                font-size: 12px;
+                color: #2fa0d5;
+            }
         </style>
     </head>
     <body>
+        <div id="frames" class="frames">frames:</div>
         <div id="streamDiv"><input type="button" id="stream" value="Stream"/></div>
         <div id="container"></div>
         <div id="console"></div>
