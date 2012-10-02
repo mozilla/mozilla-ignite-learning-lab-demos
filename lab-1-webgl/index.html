@@ -254,11 +254,22 @@
                 text-align: center;
                 margin: 0 auto;
             }
+
+            #notice {
+                position: absolute;
+                bottom: 10px;
+                left: 10px;
+                width: 400px;
+                color: #fff; 
+                font-family: verdana;
+                font-size: 12px;
+            }
         </style>
     </head>
     <body>
         <div id="streamDiv"><input type="button" id="stream" value="Stream"/></div>
         <div id="container"></div>
         <div id="console"></div>
+        <div id="notice">Note: Depending on the performance characteristics of your hard disk, and the selected level of detail in the upper-right, there may be a short delay before the first pointcloud frames are visible.</div>
     </body>
 </html>
