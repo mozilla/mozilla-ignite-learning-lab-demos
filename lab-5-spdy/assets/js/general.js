@@ -73,12 +73,38 @@
 				// http://stackoverflow.com/a/8570976
 				var $el = $('<img />').attr({
 					'src': 'http://localhost/large.jpg?rand=' + rand,
-					'onload': 'Loader.decrementRemainingImages()'
+					'onload': 'Loader.decrementRemainingImages()',
+					'width': 190,
 				});
 
-				$('#column-2').append($el);
+				this.appendImage($el);
 
 			}
+
+		},
+
+		// Append the image element to the correct column, preferring
+		// shorting columns.
+		appendImage: function($el) {
+
+			// Assume the second col is the shortest for now.
+			var shortestCol = {
+				index: 2,
+				height: $('#column-2').height(),
+			}
+
+			// Check if any of the cols is even shorter
+			$.each([3, 4, 5], function(index, value) {
+				colHeight = $('#column-' + value).height();
+
+				if (colHeight < shortestCol.height) {
+					shortestCol.index = value;
+					shortestCol.height = colHeight;
+				}
+			});
+
+			var $section = $('<section />').append($el);
+			$('#column-' + shortestCol.index).append($section);
 
 		},
 
