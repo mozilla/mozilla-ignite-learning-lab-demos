@@ -34,7 +34,7 @@
 
 			$(window).on('scroll', function() {
 				var windowPosition = $(this).scrollTop() + $(this).height();
-				var loadAfter = $(document).height() - 100;
+				var loadAfter = $(document).height() - 10;
 
 				// Are we approaching the bottom of the window yet?
 				if (windowPosition > loadAfter) Loader.processForm();
@@ -74,7 +74,7 @@
 				var $el = $('<img />').attr({
 					'src': 'http://localhost/large.jpg?rand=' + rand,
 					'onload': 'Loader.decrementRemainingImages()',
-					'width': 190,
+					'width': 190 / (rand % 3 + 1),
 				});
 
 				this.appendImage($el);
