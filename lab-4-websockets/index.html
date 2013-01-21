@@ -1,0 +1,367 @@
+<html>
+    <head>
+        <title>WebGL Demo</title>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="/public/js/three.min.js"></script>
+        <script src="/public/js/Stats.js"></script>
+        <script src="/public/js/dat.gui.min.js"></script>
+        <script src="/public/js/jquery-1.4.2.min.js"></script>
+        <script type="x-shader/x-vertex" id="vertexshader">
+        attribute float size;
+        attribute vec3 pos;
+        varying vec4 vColor;
+
+        void main() {
+            // size/intensity ranges from 0 to 255.We normalize it here.
+            vColor = vec4(size/255.0);
+            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+            gl_PointSize = size / 20.0;
+            gl_Position = projectionMatrix * mvPosition;
+        }
+        </script>
+
+        <script type="x-shader/x-fragment" id="fragmentshader">
+        uniform vec3 color;
+        varying vec4 vColor;
+
+        void main() {
+            // Circles look better than squares
+            if(distance(gl_PointCoord, vec2(0.5)) > 0.5){
+                discard;
+            }
+            gl_FragColor = vColor;
+        }
+        </script>
+
+
+        <script>
+        $(function () {
+
+            $('#stream').attr("disabled", "disabled");
+            var socket = io.connect('http://localhost:8080');
+            var timeStart = null;
+            var timeEnd   = null;
+
+            var controlData = {
+                StreamData: 100
+            };
+
+            var renderer, scene, camera, stats, controls;
+            var uniforms, attributes;
+            var setup = false;
+            var shaderMaterial;
+            var totalPointsTransferred = 0;
+
+            var WIDTH = window.innerWidth;
+            var HEIGHT = window.innerHeight;
+            var fov = 40;
+
+            init();
+            animate();
+
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                render();
+                stats.update();
+            }
+
+            function doSetup(data) {
+                setup = true;
+                var geometry = new THREE.Geometry();
+
+                for (var i = 0; i < data.frame.length; i++) {
+                    geometry.vertices.push(new THREE.Vector3());
+                }
+
+                // particle system
+                var object = new THREE.ParticleSystem(geometry, shaderMaterial);
+                object.dynamic = true;
+
+                for (var v = 0; v < object.geometry.vertices.length; v++) {
+                    attributes.size.value[v] = 0;
+                }
+
+                scene.add(object);
+            }
+
+            function render() {
+                renderer.render(scene, camera);
+            }
+
+            function clog(text, index) {
+                var out = document.getElementById('output');
+                out.innerHTML += (text + '\n');
+
+                if(!index) index = 0;
+                if(index % 100 == 0)
+                    out.scrollTop = out.scrollHeight;
+            }
+
+            function init() {
+
+                camera = new THREE.PerspectiveCamera(fov, WIDTH / HEIGHT, 1, 10000);
+                camera.position.z = 500;
+
+                scene = new THREE.Scene();
+
+                attributes = {
+                    size: {
+                        type: 'f',
+                        value: []
+                    },
+                    pos: {
+                        type: "v3",
+                        value: []
+                    }
+                };
+
+                shaderMaterial = new THREE.ShaderMaterial({
+                    attributes: attributes,
+                    vertexShader: document.getElementById('vertexshader').textContent,
+                    fragmentShader: document.getElementById('fragmentshader').textContent
+                });
+
+                renderer = new THREE.WebGLRenderer();
+                renderer.setSize(WIDTH, HEIGHT);
+
+                controls = new THREE.TrackballControls(camera, renderer.domElement);
+                controls.target.set(0, 50, 0);
+
+                var container = document.getElementById('container');
+                container.appendChild(renderer.domElement);
+
+                // FPS stats
+                stats = new Stats();
+                stats.domElement.style.position = 'absolute';
+                stats.domElement.style.top = '0px';
+                container.appendChild(stats.domElement);
+
+                createGUI();
+
+                function createGUI() {
+                    var gui = new dat.GUI({
+                        height: 100
+                    }),
+                        $gui = $('#guidat');
+
+                    $gui.css({
+                        right: 'auto',
+                        left: 10
+                    });
+
+                    //
+                    var streamDataController = gui.add(controlData, 'StreamData').name('StreamData').min(0).max(100);
+                    streamDataController.onChange(
+                    function (value) {
+                        clog('Sending event "streamdatachanged" to set level of detail to ' + value + '%');
+                        socket.emit("streamdatachanged", {
+                            percent: value / 100
+                        });
+                    });
+                }
+
+                function onWindowResize() {
+                    camera.aspect = WIDTH / HEIGHT;
+                    camera.projectionMatrix = camera.projectionMatrix.makePerspective(fov, window.innerWidth / window.innerHeight, 1, 10000);
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                }
+
+                function onDocumentMouseWheel(event) {
+                    var delta = (event.wheelDelta/360 || -event.detail/3);
+
+                    fov -= delta * 0.5;
+                    if (fov < 5) {
+                        fov = 5;
+                    } else if (fov > 90) {
+                        fov = 90;
+                    }
+                    camera.projectionMatrix = camera.projectionMatrix.makePerspective(fov, window.innerWidth / window.innerHeight, 1, 10000);
+                }
+
+                window.addEventListener('resize', onWindowResize, false);
+                window.addEventListener('mousewheel', onDocumentMouseWheel, false);
+                window.addEventListener('DOMMouseScroll', onDocumentMouseWheel, false);
+            }
+
+            $('#stream').removeAttr("disabled");
+            $('#stream').click(function () {
+
+                clog('Sending event "startStream"');
+                socket.emit('startStream');
+
+                // Why do we need this hack?
+                setTimeout(
+                    function(){
+                        clog('Sending event "streamdatachanged" to set level of detail');
+                        socket.emit("streamdatachanged", {
+                            percent: 1
+                        });
+                }, 1000);
+            });
+
+            socket.on("framesize", function (data) {
+            });
+
+            socket.on('done', function(data) {
+                var time = ((new Date()) - timeStart);
+                var filesize = 8768766 * 8; // bits
+                var throughput = (filesize / (time / 1000)) / 1000000;
+                clog('Event: "done" - Server done sending ' + data.count + ' frames');
+                clog('Transferred in ' + time + ' milliseconds');
+                clog('Estimated average throughput: ' + throughput + ' Mbps');
+            });
+
+            socket.on('frame', function (data) {
+
+                clog('Event: "frame" - Received frame # ' + data.index, data.index);
+
+                if(data.index == 1) {
+                    timeStart = new Date();
+                }
+
+                if (!setup && data.frame.length > 1) {
+                    doSetup(data);
+                }
+
+                var totalPoints = attributes.size.value.length;
+                var pointsToUpdate = attributes.size.value.length * (controlData.StreamData / 100);
+
+                totalPointsTransferred++;
+                //document.getElementById('frames').innerHTML = "frames: "+ totalPointsTransferred;
+
+                // I don't want to keep removing and adding points to the particle system, so 
+                // we're going to hide and unhide them when necessary.
+                for (var i = 0; i < totalPoints; i++) {
+                    if (data.frame[i]) {
+                        attributes.size.value[i] = 0;
+                    }
+                }
+
+                for (var i = 0; i < pointsToUpdate; i++) {
+                    // We base the number of points in a frame by the first frame, so
+                    // if we have less data than expected in a certain frame, don't blow up.
+                    if (data.frame[i]) {
+                        attributes.pos.value[i] = {
+                            // These values offset the point cloud so it rotates on its center.
+                            x: +data.frame[i][0] - 90,
+                            y: -data.frame[i][1] + 200,
+                            z: +data.frame[i][2] + 90
+                        };
+                        attributes.size.value[i] = data.frame[i][3];
+                    }
+                }
+
+                attributes.size.needsUpdate = true;
+                attributes.pos.needsUpdate = true;
+            });
+        });
+        </script>
+
+        <style>
+            body {
+
+              /* Create a gradient for the background */
+              background: rgb(0,0,0); /* Old browsers */
+              background: -moz-radial-gradient(center, ellipse cover, rgba(0,0,0,1) 0%, rgba(69,72,77,1) 100%); /* FF3.6+ */
+              background: -webkit-gradient(radial, center center, 0px, center center, 100%, color-stop(0%,rgba(0,0,0,1)), color-stop(100%,rgba(69,72,77,1))); /* Chrome,Safari4+ */
+              background: -webkit-radial-gradient(center, ellipse cover, rgba(0,0,0,1) 0%,rgba(69,72,77,1) 100%); /* Chrome10+,Safari5.1+ */
+              background: -o-radial-gradient(center, ellipse cover, rgba(0,0,0,1) 0%,rgba(69,72,77,1) 100%); /* Opera 12+ */
+              background: -ms-radial-gradient(center, ellipse cover, rgba(0,0,0,1) 0%,rgba(69,72,77,1) 100%); /* IE10+ */
+              background: radial-gradient(ellipse at center, rgba(0,0,0,1) 0%,rgba(69,72,77,1) 100%); /* W3C */
+              filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#000000', endColorstr='#45484d',GradientType=1 ); /* IE6-9 fallback on horizontal gradient */
+
+              /* Scrollbars make the demo look ugly */
+              overflow: hidden;
+            }
+
+            #stream {
+                border: 1px dotted #FFF;
+                background: #000;
+                color: #FFF;
+                font-family: verdana;
+            }
+
+            #streamDiv {
+                text-align: center;
+                margin: 0 auto;
+            }
+
+
+            #notice {
+                position: absolute;
+                bottom: 20px;
+                left: 10px;
+                width: 400px;
+                color: #fff; 
+                font-family: verdana;
+                font-size: 12px;
+            }
+
+            #frames {
+                position: fixed;
+                font-family: verdana;
+                bottom: 0px;
+                left: 10px;
+                font-size: 12px;
+                color: #2fa0d5;
+            }
+
+            #console {
+                height: 300px;
+                bottom: 0px;
+                left: 0px;
+                width: 100%;
+                position: absolute;
+                opacity: .5;
+            }
+
+            #console textarea {
+                width: 100%;
+                position: absolute;
+                left: 0;
+                bottom: 0;
+                height: 262px;
+                background-color: black;
+                color: white;
+                border: none;
+                font-family: Courier;
+                font-size: 15px;
+                padding: 5px;
+                border-top: 7px solid #ccc;
+            }
+
+            #console .header {
+                height: 20px;
+            }
+
+            #console .tab {
+                background-color: black;
+                color: white;
+                width: 150px;
+                margin-left: 20px;
+                padding: 10px;
+                font-family: Arial;
+                text-align: center;
+                border: 1px solid #ccc;
+                z-index: 10;
+                border-radius: 5px 5px 0 0;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="streamDiv"><input type="button" id="stream" value="Stream"/></div>
+        <div id="container"></div>
+        <div id="console">
+            <div class="header">
+                <div class="tab">Stream Console</div>
+            </div>
+            <textarea id="output" class="output" readonly="readonly">Click "stream" on the top of this page to start the streaming of point cloud frames.
+
+This page will fire the "startStream" event, which will signal the server to start sending point cloud frames - via the "frame" event.
+
+Although its full functionality is disabled to keep streaming performant for this demo, notice how the StreamData (level of detail, upper right) can be sent to the server over the same websocket while data is also being received. This is bi-directional, or full-duplex messaging.
+</textarea>
+        </div>
+    </body>
+</html>
