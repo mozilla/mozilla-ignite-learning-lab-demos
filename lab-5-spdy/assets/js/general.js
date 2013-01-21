@@ -38,7 +38,6 @@
 
 				// Are we approaching the bottom of the window yet?
 				if (windowPosition > loadAfter) Loader.processForm();
-	
 			});
 
 		},
@@ -46,13 +45,15 @@
 		// Retrieve our loading settings from the form and put the
 		// module in loading state
 		processForm: function() {
+
+			// Make sure we're not already loading images
 			if (this.loading === true) return false;
+			
 			this.loading = true;
+			$checkbox = $('#spdy-enabled');
 
-			this.settings.spdyEnabled = $('#spdy-enabled');
+			this.settings.spdyEnabled = $checkbox.is(':checked') ? true : false;
 			this.settings.imagesToLoad = $('#images-to-load').val();
-
-			console.log('Processed form');
 		},
 
 	}
