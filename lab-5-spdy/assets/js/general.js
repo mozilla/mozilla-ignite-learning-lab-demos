@@ -5,7 +5,7 @@
 
 (function($) {
 
-	var Loader = {
+	window.Loader = {
 
 		settings: {
 			spdyEnabled: true,
@@ -66,34 +66,38 @@
 			// track of our progress
 			for (var i = this.settings.imagesToLoad; i > 0; i--) {
 
-				var rand = getRandomInt();
+				var rand = getRandomInt(1000000, 9999999);
 
-				// Construct a new image and bind the event. We can safely
-				// use the load method, because each image has a random int
-				// appended to it and therefore won't be cached.
-				var $el = $('<img />').attr('id', rand);
+				// Attaching a handler right in the HTML, because this is the
+				// only reliable way to deal with onLoad events. See
+				// http://stackoverflow.com/a/8570976
+				var $el = $('<img />').attr({
+					'src': 'http://localhost/large.jpg?rand=' + rand,
+					'onload': 'Loader.decrementRemainingImages()'
+				});
+
 				$('#column-2').append($el);
-
-				$('#' + rand).load(this.checkRemainingImages());
-				$('#' + rand).attr('src', 'http://localhost/large.jpg?rand=' + rand);
 
 			}
 
 		},
 
-		checkRemainingImages: function(el) {
+		// Decrease our counter and display the loading time if needed.
+		decrementRemainingImages: function() {
 			this.remainingImages--;
-			if (this.remainingImages === 0) console.log('Finished loading');
+			if (this.remainingImages !== 0) return;
+
+			var deltaMs = Date.now() - this.loadingCycleStart;
+			$('.loading-time').text(deltaMs/1000);
+
 		},
 
 	}
 
-	function getRandomInt() {
-		var min = 1000000;
-		var max = 9999999;
+	// Generate a random integer between two bounds
+	function getRandomInt(min, max) {
 		return Math.floor(Math.random() * (max - min + 1)) + min;
 	}
-
 
 	$(document).ready(function() {
 		Loader.init();
