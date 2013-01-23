@@ -1,6 +1,8 @@
 var express = require('express');
 var app = express();
 var engines = require('consolidate');
+var spdy = require('spdy');
+var fs = require('fs');
 
 // Register Handlebars ar our template engine
 app.engine('html', engines.hogan);
@@ -8,11 +10,12 @@ app.set('view engine', 'html');
 app.set('views', __dirname + '/assets');
 app.use(express.bodyParser());
 
+// Set up the different URLs we will be using
 app.get('/', function(req, res) {
 	res.render('index');
 });
 
-
+// Randomly generate some intergers so we're sure not to cache the images
 app.post('/', function(req, res) {
 
 	// Set up our cols
@@ -33,22 +36,30 @@ app.post('/', function(req, res) {
 
 });
 
-
 app.get('/css/general.css', function(req, res) {
 	res.sendfile(__dirname + '/assets/css/general.css');
 });
-
 
 app.get('/js/general.js', function(req, res) {
 	res.sendfile(__dirname + '/assets/js/general.js');
 });
 
-
 app.listen(8000);
+
+// Put another copy of the app up on port 8001, with SPDY enabled.
+var spdyOptions = {
+	key: fs.readFileSync(__dirname + '/keys/spdy-key.pem'),
+	cert: fs.readFileSync(__dirname + '/keys/spdy-cert.pem'),
+	ca: fs.readFileSync(__dirname + '/keys/spdy-csr.pem'),
+	windowSize: 1024,
+};
+
+var server = spdy.createServer(spdyOptions, app);
+server.listen(8001);
 
 // Generate a random int betwee two bounds
 function getRandomInt(min, max) {
 	return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-console.log('Running SPDY demo on port 8000');
+console.log('Running SPDY demo on port 8000 and 8001');
