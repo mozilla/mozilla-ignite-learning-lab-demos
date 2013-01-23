@@ -1,8 +1,14 @@
 var express = require('express');
 var app = express();
+var engines = require('consolidate');
+
+// Register Handlebars ar our template engine
+app.engine('html', engines.hogan);
+app.set('view engine', 'html');
+app.set('views', __dirname + '/assets');
 
 app.get('/', function(req, res) {
-	res.sendfile(__dirname + '/assets/index.html');
+	res.render('index', {});
 });
 
 app.get('/css/general.css', function(req, res) {
