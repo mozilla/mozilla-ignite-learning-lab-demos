@@ -27,11 +27,6 @@
 		// down the viewport
 		bindUIActions: function() {
 
-			$('form').on('submit', function(e) {
-				e.preventDefault();
-				Loader.processForm();
-			});
-
 			$(window).on('scroll', function() {
 				var windowPosition = $(this).scrollTop() + $(this).height();
 				var loadAfter = $(document).height() - 10;
@@ -74,7 +69,8 @@
 				var $el = $('<img />').attr({
 					'src': 'http://localhost/large.jpg?rand=' + rand,
 					'onload': 'Loader.decrementRemainingImages()',
-					'width': 190 / (rand % 3 + 1),
+					'width': 190,
+					'height': 50 * (rand % 5 + 1),
 				});
 
 				this.appendImage($el);

@@ -17,9 +17,9 @@
 
 			<h1>SPDY Demo</h1>
 
-			<form>
+			<form method="post">
 				<label for="images-to-load">Number of images to load</label>
-				<input type="range" id="images-to-load" value="20" min="5" max="50" />
+				<input type="range" id="images-to-load" name="images_to_load" value="20" min="5" max="50" />
 
 				<label for="spdy-enabled">SPDY enabled</label>
 				<input type="checkbox" id="spdy-enabled" value="1" checked="1" />
@@ -56,19 +56,48 @@
 
 			</div>
 
+			<!--
+			Hogan/Mustache doesn't have a way to display keys without
+			writing an adpater, so let's write out the cols by hand.
+			-->
 			<div class="column" id="column-2">
+
+				  {{#columns.2}}
+					<section>
+					  	<img src="http://localhost/large.jpg?{{rand}}" alt="Mozilla Ignite Logo" width="190" height="{{height}}" />
+					</section>
+				  {{/columns.2}}
 
 			</div>
 
+
 			<div class="column" id="column-3">
+
+				{{#columns.3}}
+					<section>
+					  	<img src="http://localhost/large.jpg?{{rand}}" alt="Mozilla Ignite Logo" width="190" height="{{height}}" />
+					</section>
+				{{/columns.3}}
 
 			</div>
 
 			<div class="column" id="column-4">
 
+				{{#columns.2}}
+					<section>
+					  	<img src="http://localhost/large.jpg?{{rand}}" alt="Mozilla Ignite Logo" width="190" height="{{height}}" />
+					</section>
+			  	{{/columns.2}}
+
 			</div>
 
 			<div class="column" id="column-5">
+
+				{{#columns.5}}
+					<section>
+					  	<img src="http://localhost/large.jpg?{{rand}}" alt="Mozilla Ignite Logo" width="190" height="{{height}}" />
+					</section>
+				{{/columns.5}}
 
 			</div>
 
