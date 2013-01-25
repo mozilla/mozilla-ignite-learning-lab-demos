@@ -2,6 +2,7 @@ var express = require('express');
 var app = express();
 var engines = require('consolidate');
 var spdy = require('spdy');
+var https = require('https');
 var fs = require('fs');
 
 // Register Handlebars ar our template engine
@@ -44,18 +45,25 @@ app.get('/js/general.js', function(req, res) {
 	res.sendfile(__dirname + '/assets/js/general.js');
 });
 
-app.listen(8000);
+// Retrieve our keys for our HTTPS connection
+var options = {
+	key: fs.readFileSync(__dirname + '/keys/spdy-key.pem'),
+	cert: fs.readFileSync(__dirname + '/keys/spdy-cert.pem'),
+}
+
+var httpsServer = https.createServer(options, app);
+httpsServer.listen(8000)
 
 // Put another copy of the app up on port 8001, with SPDY enabled.
 var spdyOptions = {
-	key: fs.readFileSync(__dirname + '/keys/spdy-key.pem'),
-	cert: fs.readFileSync(__dirname + '/keys/spdy-cert.pem'),
+	key: options.key,
+	cert: options.cert,
 	ca: fs.readFileSync(__dirname + '/keys/spdy-csr.pem'),
 	windowSize: 1024,
 };
 
-var server = spdy.createServer(spdyOptions, app);
-server.listen(8001);
+var spdyServer = spdy.createServer(spdyOptions, app);
+spdyServer.listen(8001);
 
 // Generate a random int betwee two bounds
 function getRandomInt(min, max) {
