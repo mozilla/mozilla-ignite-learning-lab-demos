@@ -8,7 +8,6 @@
 	window.Loader = {
 
 		settings: {
-			spdyEnabled: null,
 			imagesToLoad: 20,
 		},
 
@@ -70,9 +69,7 @@
 
 			// Make sure we're not already loading images
 			if (this.remainingImages !== 0) return false;
-			$checkbox = $('#spdy-enabled');
 
-			this.settings.spdyEnabled = $checkbox.is(':checked') ? true : false;
 			this.settings.imagesToLoad = parseInt($('#images-to-load').val(), 10);
 			this.remainingImages = this.settings.imagesToLoad;
 
@@ -143,10 +140,6 @@
 		updateClock: function() {
 			var deltaMs = Date.now() - this.loadingCycleStart;
 			$('.loading-time').text(deltaMs/1000);
-
-			if (this.settings.spdyEnabled !== null) {
-				$('.spdy-status').text(this.settings.spdyEnabled ? 'enabled' : 'disabled');
-			}
 		}
 
 	}
