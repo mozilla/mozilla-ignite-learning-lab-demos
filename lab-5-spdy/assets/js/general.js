@@ -8,7 +8,7 @@
 	window.Loader = {
 
 		settings: {
-			spdyEnabled: true,
+			spdyEnabled: null,
 			imagesToLoad: 20,
 		},
 
@@ -28,7 +28,7 @@
 		bindUIActions: function() {
 
 			$('#slider').slider({
-				min: 10,
+				min: 20,
 				max: 50,
 				create: function(event, ui) {
 					$('#slider').slider('value', $('#images-to-load').val());
@@ -40,6 +40,7 @@
 
 			$('#spdy-enabled').on('change', function() {
 				Loader.switchPort($(this));
+				$('form').submit();
 			});
 
 			$(window).on('scroll', function() {
@@ -93,7 +94,7 @@
 				// only reliable way to deal with onLoad events. See
 				// http://stackoverflow.com/a/8570976
 				var $el = $('<img />').attr({
-					'src': 'http://localhost/large.jpg?rand=' + rand,
+					'src': '/images/logo.png?rand=' + rand,
 					'onload': 'Loader.decrementRemainingImages()',
 					'width': 190,
 					'height': 50 * (rand % 5 + 1),
@@ -135,11 +136,18 @@
 			this.remainingImages--;
 			if (this.remainingImages !== 0) return;
 
+			this.updateClock();
+		},
+
+		// Update loading time display and SPDY status
+		updateClock: function() {
 			var deltaMs = Date.now() - this.loadingCycleStart;
 			$('.loading-time').text(deltaMs/1000);
-			$('.spdy-status').text(this.settings.spdyEnabled ? 'enabled' : 'disabled');
 
-		},
+			if (this.settings.spdyEnabled !== null) {
+				$('.spdy-status').text(this.settings.spdyEnabled ? 'enabled' : 'disabled');
+			}
+		}
 
 	}
 
@@ -150,8 +158,7 @@
 
 	$(document).ready(function() {
 		Loader.init();
+		Loader.updateClock();
 	});
-
-	console.log('Welcome to the Mozilla Ignite Learning Labs SPDY Demo')
 
 })(jQuery);

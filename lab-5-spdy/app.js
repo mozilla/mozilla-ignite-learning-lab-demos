@@ -16,6 +16,7 @@ app.get('/', function(req, res) {
 
 	res.render('index', {
 		host: req.host,
+		spdyEnabled: false,
 	});
 
 });
@@ -52,6 +53,10 @@ app.get('/css/general.css', function(req, res) {
 
 app.get('/js/general.js', function(req, res) {
 	res.sendfile(__dirname + '/assets/js/general.js');
+});
+
+app.get('/images/logo.png', function(req, res) {
+	res.sendfile(__dirname + '/assets/images/logo.png');
 });
 
 // Retrieve our keys for our HTTPS connection
