@@ -89,6 +89,10 @@ input[type="text"], label {
 	position: fixed;
 }
 
+.spdy-status {
+	font-weight: bold;
+}
+
 .column section {
 	width: 190px;
 	padding: 20px;

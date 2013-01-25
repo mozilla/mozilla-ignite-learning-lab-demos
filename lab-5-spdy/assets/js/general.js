@@ -137,6 +137,7 @@
 
 			var deltaMs = Date.now() - this.loadingCycleStart;
 			$('.loading-time').text(deltaMs/1000);
+			$('.spdy-status').text(this.settings.spdyEnabled ? 'enabled' : 'disabled');
 
 		},
 

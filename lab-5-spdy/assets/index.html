@@ -46,7 +46,10 @@
 
 					<p>
 						This page loaded in <span class="loading-time"></span>
-						seconds with SPDY <span class="spdy-status"></span>.
+						seconds with SPDY <span class="spdy-status">
+							{{#spdyEnabled}}enabled{{/spdyEnabled}}
+							{{^spdyEnabled}}disabled{{/spdyEnabled}}
+						</span>.
 					</p>
 
 					<p>
