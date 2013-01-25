@@ -42,12 +42,25 @@ h1 {
 	margin-bottom: 0.5em;
 }
 
-input, label {
+input[type="text"], label {
 	padding: 5px;
+	font-family: Arial,​Helvetica,​sans-serif;
+	font-size: 16px;
+	color: #5c5c5c;
 }
 
-input {
-	margin-right: 40px;
+#images-to-load {
+	width: 20px;
+	border: 0px;
+}
+
+#slider {
+	display: inline-block;
+	width: 150px;
+}
+
+#slider, #spdy-enabled {
+	margin-right: 30px;
 }
 
 /**

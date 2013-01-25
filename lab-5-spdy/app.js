@@ -33,7 +33,11 @@ app.post('/', function(req, res) {
 
 	}
 
-	res.render('index', {columns: columns});
+	res.render('index', {
+		imagesToLoad: req.body.images_to_load,
+		spdyEnabled: (typeof req.body.spdy_enabled === 'undefined' ? false : true),
+		columns: columns,
+	});
 
 });
 

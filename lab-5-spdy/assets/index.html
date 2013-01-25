@@ -5,7 +5,9 @@
 
 	<title>Mozilla Ignite Learning Labs - SPDY Demo</title>
 	<link rel="stylesheet" href="/css/general.css" />
+	<link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/themes/base/jquery-ui.css" />
 	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+	<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/jquery-ui.min.js"></script>
 	<script src="js/general.js"></script>
 
 </head>
@@ -18,11 +20,12 @@
 			<h1>SPDY Demo</h1>
 
 			<form method="post">
-				<label for="images-to-load">Number of images to load</label>
-				<input type="range" id="images-to-load" name="images_to_load" value="20" min="5" max="50" />
+				<label for="images-to-load">Number of images to load:</label>
+				<input type="text" id="images-to-load" name="images_to_load" value="{{imagesToLoad}}"/>
+				<span id="slider"></span>
 
 				<label for="spdy-enabled">SPDY enabled</label>
-				<input type="checkbox" id="spdy-enabled" value="1" checked="1" />
+				<input type="checkbox" id="spdy-enabled" name="spdy_enabled" value="1" {{#spdyEnabled}}checked{{/spdyEnabled}} />
 
 				<input type="submit" id="load" value="Load" />
 			</form>
@@ -39,7 +42,7 @@
 
 				<section id="explanation">
 
-					<h1><span class="loading-time"></span> seconds</h1>
+					<h1><span class="loading-time">0</span> seconds</h1>
 
 					<p>
 						This page loaded in <span class="loading-time"></span>

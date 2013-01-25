@@ -27,6 +27,17 @@
 		// down the viewport
 		bindUIActions: function() {
 
+			$('#slider').slider({
+				min: 10,
+				max: 50,
+				create: function(event, ui) {
+					$('#slider').slider('value', $('#images-to-load').val());
+				},
+				change: function(event, ui) {
+					$('#images-to-load').val(ui.value);
+				}
+			});
+
 			$(window).on('scroll', function() {
 				var windowPosition = $(this).scrollTop() + $(this).height();
 				var loadAfter = $(document).height() - 10;
