@@ -13,7 +13,11 @@ app.use(express.bodyParser());
 
 // Set up the different URLs we will be using
 app.get('/', function(req, res) {
-	res.render('index');
+
+	res.render('index', {
+		host: req.host,
+	});
+
 });
 
 // Randomly generate some intergers so we're sure not to cache the images
@@ -37,6 +41,7 @@ app.post('/', function(req, res) {
 		imagesToLoad: req.body.images_to_load,
 		spdyEnabled: (typeof req.body.spdy_enabled === 'undefined' ? false : true),
 		columns: columns,
+		host: req.host,
 	});
 
 });

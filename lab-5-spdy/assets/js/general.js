@@ -24,7 +24,7 @@
 		},
 
 		// Set up events for both submitting the form, as well as scrolling
-		// down the viewport
+		// down the viewport and switching between SPDY and non-SPDY ports
 		bindUIActions: function() {
 
 			$('#slider').slider({
@@ -38,6 +38,10 @@
 				}
 			});
 
+			$('#spdy-enabled').on('change', function() {
+				Loader.switchPort($(this));
+			});
+
 			$(window).on('scroll', function() {
 				var windowPosition = $(this).scrollTop() + $(this).height();
 				var loadAfter = $(document).height() - 10;
@@ -46,6 +50,17 @@
 				if (windowPosition > loadAfter) Loader.processForm();
 			});
 
+		},
+
+		// Switches the `action` of the form between port 8000 and 8001
+		switchPort: function($el) {
+			var formSrc = $('form').attr('action');
+			var newFormSrc;
+
+			if ($el.is(':checked')) newFormSrc = formSrc.replace('8000', '8001');
+			else newFormSrc = formSrc.replace('8001', '8000');
+
+			$('form').attr('action', newFormSrc);
 		},
 
 		// Retrieve our loading settings from the form and put the
