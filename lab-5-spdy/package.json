@@ -1,8 +1,11 @@
 {
-  "name": "SPDY Demo",
+  "name": "spdy-demo",
   "description": "A demo application to see the advantages of using SPDY.",
   "version": "0.0.1",
-  "engine": ">= 0.8.0",
+  "engines": {
+    "node": "0.8.1",
+    "npm": "1.1.35"
+  },
   "dependencies": {
     "consolidate": {
       "version": "0.7.0"
