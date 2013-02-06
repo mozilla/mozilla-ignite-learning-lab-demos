@@ -14,9 +14,13 @@ app.use(express.bodyParser());
 // Set up the different URLs we will be using
 app.get('/', function(req, res) {
 
+	// Get the port from the request headers
+	var host = req.headers.host;
+	var port = parseInt(host.substr(host.indexOf(':') + 1), 10);
+
 	res.render('index', {
 		host: req.host,
-		spdyEnabled: false,
+		spdyEnabled: (port === 8000 ? false : true),
 	});
 
 });
