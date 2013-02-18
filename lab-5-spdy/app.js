@@ -21,6 +21,7 @@ app.get('/', function(req, res) {
 	res.render('index', {
 		host: req.host,
 		spdyEnabled: (port === 8000 ? false : true),
+		now: Date.now(),
 	});
 
 });
@@ -47,6 +48,7 @@ app.post('/', function(req, res) {
 		spdyEnabled: (typeof req.body.spdy_enabled === 'undefined' ? false : true),
 		columns: columns,
 		host: req.host,
+		now: Date.now(),
 	});
 
 });
