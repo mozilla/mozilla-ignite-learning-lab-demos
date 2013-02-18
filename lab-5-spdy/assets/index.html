@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+
+	<title>Mozilla Ignite Learning Labs - SPDY Demo</title>
+	<link rel="stylesheet" href="/css/general.css" />
+	<link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/themes/base/jquery-ui.css" />
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+	<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/jquery-ui.min.js"></script>
+	<script src="js/general.js"></script>
+	<script>
+		window.Loader.loadingCycleStart = {{now}};
+	</script>
+
+</head>
+<body>
+
+	<header>
+
+		<div class="wrapper">
+
+			<h1>SPDY Demo</h1>
+
+			<form method="post" action="https://{{host}}:{{^spdyEnabled}}8000{{/spdyEnabled}}{{#spdyEnabled}}8001{{/spdyEnabled}}">
+				<label for="images-to-load">Number of images to load:</label>
+				<input type="text" id="images-to-load" name="images_to_load" value="{{imagesToLoad}}"/>
+				<span id="slider"></span>
+
+				<label for="spdy-enabled">SPDY enabled</label>
+				<input type="checkbox" id="spdy-enabled" name="spdy_enabled" value="1" {{#spdyEnabled}}checked{{/spdyEnabled}} />
+
+				<input type="submit" id="load" value="Load" />
+			</form>
+
+		</div>
+
+	</header>
+
+	<section id="main">
+
+		<div class="wrapper">
+
+			<div class="column" id="column-1">
+
+				{{#columns}}
+
+					<section id="explanation">
+
+						<h1><span class="loading-time">0</span> seconds</h1>
+
+						<p>
+							This page loaded in <span class="loading-time"></span>
+							seconds with SPDY <span class="spdy-status">
+								{{#spdyEnabled}}enabled{{/spdyEnabled}}
+								{{^spdyEnabled}}disabled{{/spdyEnabled}}
+							</span>.
+						</p>
+
+						<p>
+							SPDY is a new web protocol that transfers all page
+							content, including additional assets, over a single
+							open connection. This makes for much faster browsing.
+						</p>
+
+					</section>
+
+				{{/columns}}
+
+			</div>
+
+			<!--
+			Hogan/Mustache doesn't have a way to display keys without
+			writing an adpater, so let's write out the cols by hand.
+			-->
+			<div class="column" id="column-2">
+
+				  {{#columns.2}}
+					<section>
+					  	<img src="/images/logo.png?{{rand}}" alt="Mozilla Ignite Logo" width="190" height="{{height}}" />
+					</section>
+				  {{/columns.2}}
+
+			</div>
+
+
+			<div class="column" id="column-3">
+
+				{{#columns.3}}
+					<section>
+					  	<img src="/images/logo.png?{{rand}}" alt="Mozilla Ignite Logo" width="190" height="{{height}}" />
+					</section>
+				{{/columns.3}}
+
+			</div>
+
+			<div class="column" id="column-4">
+
+				{{#columns.2}}
+					<section>
+					  	<img src="/images/logo.png?{{rand}}" alt="Mozilla Ignite Logo" width="190" height="{{height}}" />
+					</section>
+			  	{{/columns.2}}
+
+			</div>
+
+			<div class="column" id="column-5">
+
+				{{#columns.5}}
+					<section>
+					  	<img src="/images/logo.png?{{rand}}" alt="Mozilla Ignite Logo" width="190" height="{{height}}" />
+					</section>
+				{{/columns.5}}
+
+			</div>
+
+		</div>
+
+	</section>
+
+</body>
+</html>
