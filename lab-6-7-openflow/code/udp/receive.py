@@ -1,4 +1,3 @@
-Toggle line numbers
 import socket
 
 UDP_IP = "0.0.0.0"

@@ -1,8 +1,8 @@
 import socket
 
-UDP_IP = "127.0.0.1"
+UDP_IP = "169.254.224.199"
 UDP_PORT = 5005
-MESSAGE = "Hello, World!"
+MESSAGE = "Hello, Openflow!"
 
 print "UDP target IP:", UDP_IP
 print "UDP target port:", UDP_PORT
