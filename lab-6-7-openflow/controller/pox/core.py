@@ -1,0 +1,521 @@
+# Copyright 2011 James McCauley
+#
+# This file is part of POX.
+#
+# POX is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# POX is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with POX.  If not, see <http://www.gnu.org/licenses/>.
+
+"""
+Some of POX's core API and functionality is here, largely in the POXCore
+class (an instance of which is available as pox.core.core).
+
+This includes things like component rendezvous, logging, system status
+(up and down events), etc.
+"""
+
+from __future__ import print_function
+
+# Set up initial log state
+import logging
+
+import inspect
+import time
+import os
+
+_path = inspect.stack()[0][1]
+_ext_path = _path[0:_path.rindex(os.sep)]
+_ext_path = os.path.dirname(_ext_path) + os.sep
+_path = os.path.dirname(_path) + os.sep
+
+SQUELCH_TIME = 5
+
+_squelch = ''
+_squelchTime = 0
+_squelchCount = 0
+
+def getLogger (name=None, moreFrames=0):
+  """
+  In general, you don't need to call this directly, and will use
+  core.getLogger() instead.
+  """
+  if name is None:
+    s = inspect.stack()[1+moreFrames]
+    name = s[1]
+    if name.endswith('.py'):
+      name = name[0:-3]
+    elif name.endswith('.pyc'):
+      name = name[0:-4]
+    if name.startswith(_path):
+      name = name[len(_path):]
+    elif name.startswith(_ext_path):
+      name = name[len(_ext_path):]
+    name = name.replace('/', '.').replace('\\', '.') #FIXME: use os.path or whatever
+
+    # Remove double names ("topology.topology" -> "topology")
+    if name.find('.') != -1:
+      n = name.split('.')
+      if len(n) >= 2:
+        if n[-1] == n[-2]:
+          del n[-1]
+          name = '.'.join(n)
+
+    if name.startswith("ext."):
+      name = name.split("ext.",1)[1]
+
+    if name.endswith(".__init__"):
+      name = name.rsplit(".__init__",1)[0]
+
+  l = logging.getLogger(name)
+  g=globals()
+  if not hasattr(l, "print"):
+    def printmsg (*args, **kw):
+      #squelch = kw.get('squelch', True)
+      msg = ' '.join((str(s) for s in args))
+      s = inspect.stack()[1]
+      o = '['
+      if 'self' in s[0].f_locals:
+        o += s[0].f_locals['self'].__class__.__name__ + '.'
+      o += s[3] + ':' + str(s[2]) + '] '
+      o += msg
+      if o == _squelch:
+        if time.time() >= _squelchTime:
+          l.debug("[Previous message repeated %i more times]" % (g['_squelchCount']+1,))
+          g['_squelchCount'] = 0
+          g['_squelchTime'] = time.time() + SQUELCH_TIME
+        else:
+          g['_squelchCount'] += 1
+      else:
+        g['_squelch'] = o
+        if g['_squelchCount'] > 0:
+          l.debug("[Previous message repeated %i more times]" % (g['_squelchCount'],))
+        g['_squelchCount'] = 0
+        g['_squelchTime'] = time.time() + SQUELCH_TIME
+        l.debug(o)
+
+    setattr(l, "print", printmsg)
+    setattr(l, "msg", printmsg)
+
+  return l
+
+
+# Working around something (don't remember what)
+log = (lambda : getLogger())()
+
+from pox.lib.revent import *
+
+# Now use revent's exception hook to put exceptions in event handlers into
+# the log...
+def _revent_exception_hook (source, event, args, kw, exc_info):
+  try:
+    c = source
+    t = event
+    if hasattr(c, "__class__"): c = c.__class__.__name__
+    if isinstance(t, Event): t = t.__class__.__name__
+    elif issubclass(t, Event): t = t.__name__
+  except:
+    pass
+  log.exception("Exception while handling %s!%s...\n" % (c,t))
+import pox.lib.revent.revent
+pox.lib.revent.revent.handleEventException = _revent_exception_hook
+
+class GoingUpEvent (Event):
+  """ Fired when system is going up. """
+  pass
+
+class GoingDownEvent (Event):
+  """ Fired when system is going down. """
+  pass
+
+class UpEvent (Event):
+  """ Fired when system is up. """
+  pass
+
+class DownEvent (Event):
+  """ Fired when system is down. """
+  pass
+
+class ComponentRegistered (Event):
+  """
+  This is raised by core whenever a new component is registered.
+  By watching this, a component can monitor whether other components it
+  depends on are available.
+  """
+  def __init__ (self, name, component):
+    Event.__init__(self)
+    self.name = name
+    self.component = component
+
+import pox.lib.recoco as recoco
+
+class POXCore (EventMixin):
+  """
+  A nexus of of the POX API.
+
+  pox.core.core is a reference to an instance of this class.  This class
+  serves a number of functions.
+
+  An important one is that it can serve as a rendezvous point for
+  components.  A component can register objects on core, and they can
+  then be accessed on the core object (e.g., if you register foo, then
+  there will then be a pox.core.core.foo).  In many cases, this means you
+  won't need to import a module.
+
+  Another purpose to the central registration is that it decouples
+  functionality from a specific module.  If myL2Switch and yourL2Switch
+  both register as "switch" and both provide the same API, then it doesn't
+  matter.  Doing this with imports is a pain.
+
+  Additionally, a number of commmon API functions are vailable here.
+  """
+  _eventMixin_events = set([
+    UpEvent,
+    DownEvent,
+    GoingUpEvent,
+    GoingDownEvent,
+    ComponentRegistered
+  ])
+
+  def __init__ (self):
+    self.debug = False
+    self.running = True
+    self.components = {}
+
+    self.version = (0,1,0)
+    self.version_name = "betta"
+    print(self.banner)
+
+    self.scheduler = recoco.Scheduler(daemon=True)
+
+    self._waiters = [] # List of waiting components
+
+  @property
+  def banner (self):
+    return "{0} / Copyright 2011-2013 James McCauley, et al.".format(
+     self.version_string)
+
+  @property
+  def version_string (self):
+    return "POX %s (%s)" % ('.'.join(map(str,self.version)),self.version_name)
+
+  def callDelayed (_self, _seconds, _func, *args, **kw):
+    """
+    Calls the function at a later time.
+    This is just a wrapper around a recoco timer.
+    """
+    t = recoco.Timer(_seconds, _func, args=args, kw=kw,
+                     scheduler = _self.scheduler)
+    return t
+
+  def callLater (_self, _func, *args, **kw):
+    # first arg is `_self` rather than `self` in case the user wants
+    # to specify self as a keyword argument
+    """
+    Call the given function with the given arguments within the context
+    of the co-operative threading environment.
+    It actually calls it sooner rather than later. ;)
+    Much of POX is written without locks because it's all thread-safe
+    with respect to itself, as it's written using the recoco co-operative
+    threading library.  If you have a real thread outside of the
+    co-operative thread context, you need to be careful about calling
+    things within it.  This function provides a rather simple way that
+    works for most situations: you give it a callable (like a method)
+    and some arguments, and it will call that callable with those
+    arguments from within the co-operative threader, taking care of
+    synchronization for you.
+    """
+    _self.scheduler.callLater(_func, *args, **kw)
+
+  def raiseLater (_self, _obj, *args, **kw):
+    # first arg is `_self` rather than `self` in case the user wants
+    # to specify self as a keyword argument
+    """
+    This is similar to callLater(), but provides an easy way to raise a
+    revent event from outide the co-operative context.
+    Rather than foo.raiseEvent(BarEvent, baz, spam), you just do
+    core.raiseLater(foo, BarEvent, baz, spam).
+    """
+    _self.scheduler.callLater(_obj.raiseEvent, *args, **kw)
+
+  def getLogger (self, *args, **kw):
+    """
+    Returns a logger.  Pass it the name you want if you'd like to specify
+    one (e.g., core.getLogger("foo")).  If you don't specify a name, it
+    will make one up based on the module name it is called from.
+    """
+    return getLogger(moreFrames=1,*args, **kw)
+
+  def quit (self):
+    """
+    Shut down POX.
+    """
+    import threading
+    if threading.current_thread() is self.scheduler._thread:
+      t = threading.Thread(target=self._quit)
+      t.start()
+    else:
+      self._quit()
+
+  def _quit (self):
+    if self.running:
+      self.running = False
+      log.info("Going down...")
+      import gc
+      gc.collect()
+      self.raiseEvent(GoingDownEvent())
+      self.callLater(self.scheduler.quit)
+      for i in range(50):
+        if self.scheduler._hasQuit: break
+        gc.collect()
+        time.sleep(.1)
+      if not self.scheduler._allDone:
+        log.warning("Scheduler didn't quit in time")
+      self.raiseEvent(DownEvent())
+      log.info("Down.")
+
+  def _get_python_version (self):
+    try:
+      import platform
+      return "{impl} ({vers}/{build})".format(
+       impl=platform.python_implementation(),
+       vers=platform.python_version(),
+       build=platform.python_build()[1].replace("  "," "))
+    except:
+      return "Unknown Python"
+
+  def _get_platform_info (self):
+    try:
+      import platform
+      return platform.platform().split("\n")[0]
+    except:
+      return "Unknown Platform"
+
+  def goUp (self):
+    log.debug(self.version_string + " going up...")
+
+    log.debug("Running on " + self._get_python_version())
+    log.debug("Platform is " + self._get_platform_info())
+
+    self.raiseEvent(GoingUpEvent())
+
+    self.raiseEvent(UpEvent())
+
+    if len(self._waiters):
+      waiting_for = set()
+      for entry in self._waiters:
+        _, name, components, _, _ = entry
+        components = [c for c in components if not self.hasComponent(c)]
+        waiting_for.update(components)
+        log.debug("%s still waiting for: %s"
+                  % (name, " ".join(components)))
+      names = set([n for _,n,_,_,_ in self._waiters])
+
+      #log.info("%i things still waiting on %i components"
+      #         % (names, waiting_for))
+      log.warn("Still waiting on %i component(s)" % (len(waiting_for),))
+
+    log.info(self.version_string + " is up.")
+
+  def hasComponent (self, name):
+    """
+    Returns True if a component with the given name has been registered.
+    """
+    return name in self.components
+
+  def registerNew (self, __componentClass, *args, **kw):
+    """
+    Give it a class (and optional __init__ arguments), and it will
+    create an instance and register it using the class name.  If the
+    instance has a _core_name property, it will use that instead.
+    It returns the new instance.
+    core.registerNew(FooClass, arg) is roughly equivalent to
+    core.register("FooClass", FooClass(arg)).
+    """
+    name = __componentClass.__name__
+    obj = __componentClass(*args, **kw)
+    if hasattr(obj, '_core_name'):
+      # Default overridden
+      name = obj._core_name
+    self.register(name, obj)
+    return obj
+
+  def register (self, name, component=None):
+    """
+    Makes the object "component" available as pox.core.core.name.
+
+    If only one argument is specified, the given argument is registered
+    using its class name as the name.
+    """
+    #TODO: weak references?
+    if component is None:
+      component = name
+      name = component.__class__.__name__
+      if hasattr(component, '_core_name'):
+        # Default overridden
+        name = component._core_name
+
+    if name in self.components:
+      log.warn("Warning: Registered '%s' multipled times" % (name,))
+    self.components[name] = component
+    self.raiseEventNoErrors(ComponentRegistered, name, component)
+    self._try_waiters()
+    
+  def call_when_ready (self, callback, components=[], name=None, args=(),
+                       kw={}):
+    """
+    Calls a callback when components are ready.
+    """
+    if isinstance(components, basestring):
+      components = [components]
+    elif isinstance(components, set):
+      components = list(components)
+    else:
+      try:
+        _ = components[0]
+        components = list(components)
+      except:
+        components = [components]
+    if name is None:
+      #TODO: Use inspect here instead
+      name = getattr(callback, 'func_name')
+      if name is None:
+        name = str(callback)
+      else:
+        name += "()"
+        if hasattr(callback, 'im_class'):
+          name = getattr(callback.im_class,'__name__', '') + '.' + name
+      if hasattr(callback, '__module__'):
+        # Is this a good idea?  If not here, we should do it in the
+        # exception printing in try_waiter().
+        name += " in " + callback.__module__
+    entry = (callback, name, components, args, kw)
+    self._waiters.append(entry)
+    self._try_waiter(entry)
+
+  def _try_waiter (self, entry):
+    """
+    Tries a waiting callback.
+
+    Calls the callback, removes from _waiters, and returns True if
+    all are satisfied.
+    """
+    if entry not in self._waiters:
+      # Already handled
+      return
+    callback, name, components, args_, kw_ = entry
+    for c in components:
+      if not self.hasComponent(c):
+        return False
+    self._waiters.remove(entry)
+    try:
+      if callback is not None:
+        callback(*args_,**kw_)
+    except:
+      import traceback
+      msg = "Exception while trying to notify " + name
+      import inspect
+      try:
+        msg += " at " + inspect.getfile(callback)
+        msg += ":" + str(inspect.getsourcelines(callback)[1])
+      except:
+        pass
+      log.exception(msg)
+    return True
+
+  def _try_waiters (self):
+    """
+    Tries to satisfy all component-waiting callbacks
+    """
+    changed = True
+    
+    while changed:
+      changed = False
+      for entry in list(self._waiters):
+        if self._try_waiter(entry):
+          changed = True
+
+  def listen_to_dependencies (self, sink, components=None, attrs=True,
+                              short_attrs=False, listen_args={}):
+    """
+    Look through *sink* for handlers named like _handle_component_event.
+    Use that to build a list of components, and append any components
+    explicitly specified by *components*.
+
+    listen_args is a dict of "component_name"={"arg_name":"arg_value",...},
+    allowing you to specify additional arguments to addListeners().
+
+    When all the referenced components are registered, do the following:
+    1) Set up all the event listeners
+    2) Call "_all_dependencies_met" on *sink* if it exists
+    3) If attrs=True, set attributes on *sink* for each component
+       (e.g, sink._openflow_ would be set to core.openflow)
+    
+    For example, if topology is a dependency, a handler for topology's
+    SwitchJoin event must be defined as so:
+       def _handle_topology_SwitchJoin (self, ...):
+
+    *NOTE*: The semantics of this function changed somewhat in the
+            Summer 2012 milestone, though its intention remains the same.
+    """
+    if components is None:
+      components = set()
+    elif isinstance(components, basestring):
+      components = set([components])
+    else:
+      components = set(components)
+
+    for c in dir(sink):
+      if not c.startswith("_handle_"): continue
+      if c.count("_") < 3: continue
+      c = '_'.join(c.split("_")[2:-1])
+      components.add(c)
+
+    if None in listen_args:
+      # This means add it to all...
+      args = listen_args.pop(None)
+      for k,v in args.iteritems():
+        for c in components:
+          if c not in listen_args:
+            listen_args[c] = {}
+          if k not in listen_args[c]:
+            listen_args[c][k] = v
+
+    if set(listen_args).difference(components):
+      log.error("Specified listen_args for missing component(s): %s" %
+                (" ".join(set(listen_args).difference(components)),))
+
+    def done (sink, components, attrs, short_attrs):
+      if attrs or short_attrs:
+        for c in components:
+          if short_attrs:
+            attrname = c
+          else:
+            attrname = '_%s_' % (c,)
+          setattr(sink, attrname, getattr(self, c))
+      for c in components:
+        if hasattr(getattr(self, c), "_eventMixin_events"):
+          kwargs = {"prefix":c}
+          kwargs.update(listen_args.get(c, {}))
+          getattr(self, c).addListeners(sink, **kwargs)
+      getattr(sink, "_all_dependencies_met", lambda : None)()
+
+
+    self.call_when_ready(done, components, name=sink.__class__.__name__,
+                         args=(sink,components,attrs,short_attrs))
+
+
+  def __getattr__ (self, name):
+    if name not in self.components:
+      raise AttributeError("'%s' not registered" % (name,))
+    return self.components[name]
+
+core = POXCore()
