@@ -187,7 +187,8 @@ class l2_learning (object):
 
   def _handle_ConnectionUp (self, event):
     log.debug("Connection %s" % (event.connection,))
-    LearningSwitch(event.connection, self.transparent)
+    switch = LearningSwitch(event.connection, self.transparent)
+    core.register("learning_switch", switch)
 
 
 def launch (transparent=False, hold_down=_flood_delay):
