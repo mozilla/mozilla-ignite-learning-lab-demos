@@ -254,5 +254,7 @@ def launch (timeout=ARP_TIMEOUT, no_flow=False, eat_packets=True,
   core.Interactive.variables['arp'] = _arp_table
   for k,v in kw.iteritems():
     _arp_table[IPAddr(k)] = Entry(v, static=True)
+  _arp_table[IPAddr('192.168.0.254')] = Entry(EthAddr('64:70:02:CB:B7:E8'), static=True)
+  _arp_table[IPAddr('192.168.0.253')] = Entry(EthAddr('64:70:02:CB:B7:E8'), static=True)
   core.registerNew(ARPResponder)
 

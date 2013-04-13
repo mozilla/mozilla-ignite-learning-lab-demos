@@ -113,6 +113,8 @@ class l3_switch (EventMixin):
     # This timer handles expiring stuff
     self._expire_timer = Timer(5, self._handle_expiration, recurring=True)
 
+    core.register("learning_switch", self)
+
     self.listenTo(core)
 
   def _handle_expiration (self):

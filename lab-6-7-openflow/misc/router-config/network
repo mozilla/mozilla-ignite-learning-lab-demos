@@ -1,0 +1,58 @@
+config 'switch'
+        option 'name' 'rtl8366rb'
+        option 'reset' '1'
+        option 'enable_vlan' '1'
+        option 'enable_learning' '0'
+        
+config 'switch_vlan'
+        option 'device' 'rtl8366rb'
+        option 'vlan' '1'
+        option 'ports' '1 5t'
+
+config 'switch_vlan'
+        option 'device' 'rtl8366rb'
+        option 'vlan' '2'
+        option 'ports' '2 5t'
+
+config 'switch_vlan'
+        option 'device' 'rtl8366rb'
+        option 'vlan' '3'
+        option 'ports' '3 5t'
+
+config 'switch_vlan'
+        option 'device' 'rtl8366rb'
+        option 'vlan' '4'
+        option 'ports' '4 5t'
+
+config 'switch_vlan'
+        option 'device' 'rtl8366rb'
+        option 'vlan' '5'
+        option 'ports' '0 5t'
+
+config 'interface' 'loopback'
+        option 'ifname' 'lo'
+        option 'proto'  'static'
+        option 'ipaddr' '127.0.0.1'
+        option 'netmask' '255.0.0.0'
+        
+config 'interface'
+        option 'ifname' 'eth0.1'
+        option 'proto' 'static' 
+
+config 'interface'
+        option 'ifname' 'eth0.2'
+        option 'proto' 'static' 
+
+config 'interface'
+        option 'ifname' 'eth0.3'
+        option 'proto' 'static' 
+
+config 'interface'
+        option 'ifname' 'eth0.4'
+        option 'proto' 'static' 
+
+config 'interface'
+        option 'ifname' 'eth0.5'
+        option 'proto' 'static'
+        option 'ipaddr' '192.168.1.1'
+        option 'netmask' '255.255.255.0'

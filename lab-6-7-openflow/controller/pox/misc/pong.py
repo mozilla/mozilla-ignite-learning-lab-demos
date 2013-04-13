@@ -46,7 +46,7 @@ def _handle_PacketIn (event):
       r.hwdst = a.hwsrc
       r.protodst = a.protosrc
       r.protosrc = a.protodst
-      r.hwsrc = EthAddr("02:00:DE:AD:BE:EF")
+      r.hwsrc = EthAddr("64:70:02:CB:B7:E8")
       e = pkt.ethernet(type=packet.type, src=r.hwsrc, dst=a.hwsrc)
       e.payload = r
 
