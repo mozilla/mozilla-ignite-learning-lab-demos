@@ -3,10 +3,9 @@
 # This is an example component to be used with the
 # Mozilla Ignite SDN Learning Labs.  
 # 
-# It demonstrates fine-grained control over packet handling
-# available with OpenFlow. This is intended as an experiment
-# for the purposes of learning, and not as something you
-# would want to try in a production environment
+# This is a contrived example demonstrating 
+# how a new "protocol" could be written and
+# handled appropriately by a switch
 
 """
 This is a POX component that turns a switch into a hub,
@@ -22,11 +21,8 @@ from pox.lib.addresses import IPAddr
 
 log = core.getLogger()
 
-class Injector(object):
-  """
-  This class provides the functionality for both modifying packets
-  and additionally, turning a switch into a hub
-  """
+class Proto(object):
+
   def __init__ (self, connection):
     # Keep track of the connection to the switch so that we can
     # send it messages!
@@ -108,29 +104,30 @@ class Injector(object):
 
   def _handle_PacketIn (self, event):
     packet = event.parsed
-
     # Hold on to the original UDP packet we received
-    old_udp = packet.find("udp")
-
+    udp = packet.find("udp")
     # Check for some conditions
-    # In our Mozilla experiment, we send UDP packets on port 10002
-    # so we look for those
-    m = False
-    if old_udp:
-      #log.debug(old_udp.payload)
-      m = re.findall('(SUPERCAST)', str(old_udp.payload))
+    # 1. It's a UDP packet
+    # 2. It has the SUPERCAST header
+    # 3. It has a list of IP addresses after the header
 
+    # This will be our match object
+    m = False
+    if udp:
+      # OK, it's a UDP packet
+      m = re.findall('(SUPERCAST)', str(udp.payload))
       if m:
-        ips = re.findall('\d{1,3}\.\d{1,3}.\d{1,3}.\d{1,3}', str(old_udp.payload))
-        pieces = old_udp.payload.split('\n\n')
+        # Nice, it has the SUPERCAST header
+        ips = re.findall('\d{1,3}\.\d{1,3}.\d{1,3}.\d{1,3}', str(udp.payload))
+        # Now, let's remove the supercast header
+        pieces = udp.payload.split('\n\n')
         if len(pieces) > 1:
-          old_udp.payload = "\n\n".join(pieces[1:])
+          udp.payload = "\n\n".join(pieces[1:])
+        # Now run through the IPs listed and send the packet out
         if ips:
           log.debug('SUPERCAST request to %s', ips)
           for ip in ips:
             self.sendPacket(event, ip)
-            
-
     else:
       # In the event we received some packet we don't care about,
       #  send it to along to where it was headed on all physical ports
@@ -164,10 +161,10 @@ def launch ():
     log.debug("Controlling %s" % (event.connection,))
     # We want the entire body of the packet
     core.openflow.miss_send_len = 0xffff
-    # Create in instance of our packet injector, and pass
+    # Create in instance of our protocol handler, and pass
     #  it the switch connection so we can add handlers
     #  when packets come in
-    Injector(event.connection)
+    Proto(event.connection)
 
   # Tell POX to use the above handler when the switch connection
   #  is alive

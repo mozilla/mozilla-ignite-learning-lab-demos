@@ -8,27 +8,65 @@ the future of networking?
 This is a tutorial project you can use to get quickly up and running
 with a homebrew SDN network at home.
 
-Before you get started, with our DIY video, where we build an OpenFlow
+Before you get started, check out our DIY video, where we build an OpenFlow
 network in a suburban garage: http://example.com
 
 ## Pre-requisites
 
-- Python 2.7+: http://www.python.org/getit/
-- An openflow-capable router/switch, like: http://www.amazon.com/TP-LINK-TL-WR1043ND-Ultimate-Wireless-Gigabit/dp/B002YLAUU8
-- Some spare computers (desktops, laptops, Raspberry Pis)
-- Pioneer spirit
+- 3-4 spare computers (desktops, laptops, Raspberry Pis)
+- `ssh` on at least on of the computers (you'll want to use this computer for the 'setup' phase)
+- Python 2.7 Installed on all computers: http://www.python.org/getit/
+- A copy of this repository on all computers (may need a USB stick if you don't use git)
+- This router, which this lab is designed for: http://www.amazon.com/TP-LINK-TL-WR1043ND-Ultimate-Wireless-Gigabit/dp/B002YLAUU8
+- Pioneer spirit!
 
-## Setup (To Be Revised)
+## Getting Set Up With the Right Firmware
 
-1. Plug in your router
-2. Connect to it via ethernet
-3. Log in
-4. Flash the firmware with OpenWRT + Openflow
-5. SSH into your router
-6. Configure your router
-7. Copy this entire project onto your router-connected computer
-8. Start reading `tutorials/0-setup.md` in this project
+The first part of our lab involves putting the right firmware
+on our router. The firmware we're using is a special flavor
+of OpenWRT, an open source operating system for routers. 
+It has OpenFlow 1.0 preinstalled.
+
+1. Power up your router
+1. Connect a computer to it via ethernet to one of the router's LAN ports
+1. Navigate to the router's admin panel: 192.168.0.1
+1. Login in with username 'admin' and password 'admin'
+1. Head to System Tools -> Firmware upgrade
+1. For the firmware file upload, select misc/firmware/ofwrt-attitude-adj-pantou.bin in this repository
+1. Upload, and wait a few minutes. There will no longer be a web interface
+1. Telnet into your router: `telnet 192.168.1.1`
+1. Set a password for the root account (follow the prompts): `passwd`
+1. Exit: `exit`
+1. Log in via SSH: `ssh root@192.168.1.1`
+1. Enter the password that you set 3 steps ago
+1. Are you in? Nice!
+
+## Configuring the router
+
+1. 
 
 ## Help!
+
+1. Get project files
+1. Copy project files to all computers
+1. Disconnect all from itnernet
+1. Plug in router
+1. Pick one computer, plug in ethernet cable into router LAN port
+1. Navigate to the router's admin panel: 192.168.0.1
+1. Login in with username 'admin' and password 'admin'
+1. Head to System Tools -> Firmware upgrade
+1. For the firmware file upload, select misc/firmware/ofwrt-attitude-adj-pantou.bin in this repository
+1. Upload, and wait a few minutes. There will no longer be a web interface
+1. Telnet into your router: `telnet 192.168.1.1`
+1. Set a password for the root account (follow the prompts): `passwd`
+1. Exit: `exit`
+1. Log in via SSH: `ssh root@192.168.1.1`
+1. Enter the password that you set 3 steps ago
+1. Are you in? Nice!
+
+1. Configure router
+1. restart network
+
+
 
 kenny@mozillafoundation.org
