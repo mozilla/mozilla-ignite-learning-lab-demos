@@ -51,7 +51,7 @@ It has OpenFlow 1.0 preinstalled.
 1. Copy project files to all computers
 1. Disconnect all from itnernet
 1. Plug in router
-1. Pick one computer, plug in ethernet cable into router LAN port
+1. Pick one computer to use as a "controller", plug in ethernet cable into router LAN port
 1. Navigate to the router's admin panel: 192.168.0.1
 1. Login in with username 'admin' and password 'admin'
 1. Head to System Tools -> Firmware upgrade
@@ -65,7 +65,19 @@ It has OpenFlow 1.0 preinstalled.
 1. Are you in? Nice!
 
 1. Configure router
-1. restart network
+    - It's best to use a mac or linux to configure your router
+    - Copy misc/router-config/network to your router: scp misc/router-config/network root@192.168.1.1:~/
+    - From within the router, run: sudo cp network /etc/config/
+1. Restart network (cxn will die): /etc/init.d/network restart
+1. Unplug from LAN, plug comp into router's WAN port
+1. Get your controller's IP address
+1. SSH back into router if the connection didn't come up:`ssh root@192.168.1.1`
+1. Enter: `vi /etc/config/openflow'
+1. Use arrow keys to move to line that says 'ofctl': Enter your controller's IP address
+1. Restart openflow: /etc/init.d/openflow restart
+
+1. Example project
+1. Plug in your "host" computers to the router's LAN ports
 
 
 
